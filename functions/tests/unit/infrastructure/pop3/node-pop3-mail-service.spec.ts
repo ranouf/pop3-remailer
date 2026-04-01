@@ -7,6 +7,7 @@ import type { Pop3CommandClientInterface } from '../../../../src/infrastructure/
 import type { Pop3CommandFactoryInterface } from '../../../../src/infrastructure/pop3/pop3-command-factory.interface';
 
 class FakePop3CommandClient implements Pop3CommandClientInterface {
+  public readonly commandOrder: string[] = [];
   public connectCalls = 0;
   public listCalls: Array<number | string | undefined> = [];
   public quitCalls = 0;
@@ -30,6 +31,7 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
     'From: source@example.com\r\nMessage-ID: <id-3@example.com>\r\n\r\nHello';
 
   public connect(): Promise<void> {
+    this.commandOrder.push('connect');
     this.connectCalls += 1;
 
     if (this.connectError !== null) {
@@ -40,6 +42,9 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
   }
 
   public LIST(messageNumber?: string | number): Promise<string[][] | string[]> {
+    this.commandOrder.push(
+      messageNumber === undefined ? 'LIST' : `LIST ${messageNumber}`,
+    );
     this.listCalls.push(messageNumber);
 
     if (this.listError !== null) {
@@ -54,12 +59,14 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
   }
 
   public QUIT(): Promise<string> {
+    this.commandOrder.push('QUIT');
     this.quitCalls += 1;
 
     return Promise.resolve('OK');
   }
 
   public RETR(messageNumber: number): Promise<string> {
+    this.commandOrder.push(`RETR ${messageNumber}`);
     this.retrCalls.push(messageNumber);
 
     if (this.retrError !== null) {
@@ -70,6 +77,9 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
   }
 
   public UIDL(messageNumber?: string | number): Promise<string[][] | string[]> {
+    this.commandOrder.push(
+      messageNumber === undefined ? 'UIDL' : `UIDL ${messageNumber}`,
+    );
     this.uidlCalls.push(messageNumber);
 
     if (this.uidlError !== null) {
@@ -153,6 +163,26 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
     });
     expect(factory.client.retrCalls).toEqual([3]);
     expect(factory.client.quitCalls).toBe(1);
+  });
+
+  it('executes POP3 commands sequentially on a single connection', async () => {
+    const factory = new FakePop3CommandFactory();
+    const mailSource = buildMailSource(factory);
+
+    await mailSource.listMessages(sourceAccount);
+    await mailSource.getMessage(sourceAccount, 3);
+
+    expect(factory.client.commandOrder).toEqual([
+      'connect',
+      'UIDL',
+      'LIST',
+      'QUIT',
+      'connect',
+      'UIDL 3',
+      'LIST 3',
+      'RETR 3',
+      'QUIT',
+    ]);
   });
 
   it('wraps network connection failures as POP3 connection errors', async () => {

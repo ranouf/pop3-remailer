@@ -39,50 +39,48 @@ export class NodePop3MailService implements Pop3MailService {
   ): Promise<RawEmailMessage> {
     return this.withClient(async (client) => {
       try {
-        const [uidlResponse, listResponse, rawMessage] = await Promise.all([
-          retry(() => client.UIDL(messageNumber), {
-            fallbackError: {
-              category: 'technical',
-              code: 'POP3_RETR_FAILED',
-              details: {
-                messageNumber,
-                sourceAccountId: sourceAccount.id,
-              },
-              message: 'Failed to read POP3 UIDL for a message.',
-              retriable: true,
+        const uidlResponse = await retry(() => client.UIDL(messageNumber), {
+          fallbackError: {
+            category: 'technical',
+            code: 'POP3_RETR_FAILED',
+            details: {
+              messageNumber,
+              sourceAccountId: sourceAccount.id,
             },
-            policy: this.buildRetryPolicy(),
-            isRetryable: (error) => this.isRetriablePop3Error(error),
-          }),
-          retry(() => client.LIST(messageNumber), {
-            fallbackError: {
-              category: 'technical',
-              code: 'POP3_RETR_FAILED',
-              details: {
-                messageNumber,
-                sourceAccountId: sourceAccount.id,
-              },
-              message: 'Failed to read POP3 size for a message.',
-              retriable: true,
+            message: 'Failed to read POP3 UIDL for a message.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
+        const listResponse = await retry(() => client.LIST(messageNumber), {
+          fallbackError: {
+            category: 'technical',
+            code: 'POP3_RETR_FAILED',
+            details: {
+              messageNumber,
+              sourceAccountId: sourceAccount.id,
             },
-            policy: this.buildRetryPolicy(),
-            isRetryable: (error) => this.isRetriablePop3Error(error),
-          }),
-          retry(() => client.RETR(messageNumber), {
-            fallbackError: {
-              category: 'technical',
-              code: 'POP3_RETR_FAILED',
-              details: {
-                messageNumber,
-                sourceAccountId: sourceAccount.id,
-              },
-              message: 'Failed to retrieve a POP3 message.',
-              retriable: true,
+            message: 'Failed to read POP3 size for a message.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
+        const rawMessage = await retry(() => client.RETR(messageNumber), {
+          fallbackError: {
+            category: 'technical',
+            code: 'POP3_RETR_FAILED',
+            details: {
+              messageNumber,
+              sourceAccountId: sourceAccount.id,
             },
-            policy: this.buildRetryPolicy(),
-            isRetryable: (error) => this.isRetriablePop3Error(error),
-          }),
-        ]);
+            message: 'Failed to retrieve a POP3 message.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
 
         const uidlEntry = this.responseParser.parseUidlEntry(uidlResponse);
         const sizeEntry = this.responseParser.parseListSizeEntry(listResponse);
@@ -111,34 +109,32 @@ export class NodePop3MailService implements Pop3MailService {
   ): Promise<readonly Pop3MessageMetadata[]> {
     return this.withClient(async (client) => {
       try {
-        const [uidlResponse, listResponse] = await Promise.all([
-          retry(() => client.UIDL(), {
-            fallbackError: {
-              category: 'technical',
-              code: 'POP3_LIST_FAILED',
-              details: {
-                sourceAccountId: sourceAccount.id,
-              },
-              message: 'Failed to list POP3 UIDLs.',
-              retriable: true,
+        const uidlResponse = await retry(() => client.UIDL(), {
+          fallbackError: {
+            category: 'technical',
+            code: 'POP3_LIST_FAILED',
+            details: {
+              sourceAccountId: sourceAccount.id,
             },
-            policy: this.buildRetryPolicy(),
-            isRetryable: (error) => this.isRetriablePop3Error(error),
-          }),
-          retry(() => client.LIST(), {
-            fallbackError: {
-              category: 'technical',
-              code: 'POP3_LIST_FAILED',
-              details: {
-                sourceAccountId: sourceAccount.id,
-              },
-              message: 'Failed to list POP3 message sizes.',
-              retriable: true,
+            message: 'Failed to list POP3 UIDLs.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
+        const listResponse = await retry(() => client.LIST(), {
+          fallbackError: {
+            category: 'technical',
+            code: 'POP3_LIST_FAILED',
+            details: {
+              sourceAccountId: sourceAccount.id,
             },
-            policy: this.buildRetryPolicy(),
-            isRetryable: (error) => this.isRetriablePop3Error(error),
-          }),
-        ]);
+            message: 'Failed to list POP3 message sizes.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
 
         const metadata = this.buildMetadataMap(
           this.responseParser.parseListEntries(uidlResponse),

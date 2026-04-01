@@ -51,12 +51,14 @@ describe('infrastructure/analytics/amplitude-node-client', () => {
     const client = new AmplitudeNodeClient('amplitude-api-key');
 
     await client.track({
+      device_id: 'pop3-remailer-backend:test',
       event_properties: {
         environment: 'test',
         jobId: 'job-123',
       },
       event_type: 'job_started',
       insert_id: 'job_started:job-123',
+      user_id: 'orange:source@orange.fr',
     }).promise;
 
     expect(trackMock).toHaveBeenCalledWith(
@@ -66,7 +68,9 @@ describe('infrastructure/analytics/amplitude-node-client', () => {
         jobId: 'job-123',
       },
       {
+        device_id: 'pop3-remailer-backend:test',
         insert_id: 'job_started:job-123',
+        user_id: 'orange:source@orange.fr',
       },
     );
   });

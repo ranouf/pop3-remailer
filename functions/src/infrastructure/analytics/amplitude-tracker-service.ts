@@ -9,6 +9,8 @@ import type {
 import type { AmplitudeNodeClientInterface } from './amplitude-node-client.interface';
 
 export class AmplitudeTrackerService implements AnalyticsTracker {
+  private static readonly backendDeviceIdPrefix = 'pop3-remailer-backend';
+
   private readonly amplitudeClient: AmplitudeNodeClientInterface;
   private readonly analyticsConfig: AppConfig['analytics'];
   private readonly logger: StructuredLogger;
@@ -40,16 +42,23 @@ export class AmplitudeTrackerService implements AnalyticsTracker {
     properties: TrackerEventProperties,
   ): Promise<void> {
     const eventProperties = this.buildEventProperties(properties);
+    const identity = this.buildEventIdentity(eventProperties);
     const insertId = this.buildInsertId(eventName, eventProperties);
 
     try {
       await this.amplitudeClient.track({
+        device_id: identity.deviceId,
         event_properties: eventProperties,
         event_type: eventName,
         ...(insertId === undefined
           ? {}
           : {
               insert_id: insertId,
+            }),
+        ...(identity.userId === undefined
+          ? {}
+          : {
+              user_id: identity.userId,
             }),
       }).promise;
     } catch (error) {
@@ -59,6 +68,22 @@ export class AmplitudeTrackerService implements AnalyticsTracker {
         properties: eventProperties,
       });
     }
+  }
+
+  private buildEventIdentity(properties: TrackerEventProperties): {
+    readonly deviceId: string;
+    readonly userId?: string;
+  } {
+    const sourceAccountId = this.readStringProperty(properties, 'sourceAccountId');
+
+    return {
+      deviceId: `${AmplitudeTrackerService.backendDeviceIdPrefix}:${this.analyticsConfig.environmentName}`,
+      ...(sourceAccountId === undefined
+        ? {}
+        : {
+            userId: sourceAccountId,
+          }),
+    };
   }
 
   private buildEventProperties(

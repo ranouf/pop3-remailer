@@ -33,10 +33,20 @@ export class AmplitudeNodeClient implements AmplitudeNodeClientInterface {
       ...event.event_properties,
     };
     const result = this.client.track(event.event_type, eventProperties, {
+      ...(event.device_id === undefined
+        ? {}
+        : {
+            device_id: event.device_id,
+          }),
       ...(event.insert_id === undefined
         ? {}
         : {
             insert_id: event.insert_id,
+          }),
+      ...(event.user_id === undefined
+        ? {}
+        : {
+            user_id: event.user_id,
           }),
     });
 

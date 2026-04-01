@@ -19,7 +19,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 const createValidEnvironment = (): Record<string, string> => ({
   AMPLITUDE_API_KEY: 'amplitude-key',
   ENVIRONMENT_NAME: 'local',
-  FIREBASE_PROJECT_ID: 'demo-pop3-remailer',
+  APP_FIREBASE_PROJECT_ID: 'demo-pop3-remailer',
   GMAIL_CLIENT_ID: 'gmail-client-id',
   GMAIL_CLIENT_SECRET: 'gmail-client-secret',
   GMAIL_MAX_IMPORT_RETRIES: '2',
@@ -114,7 +114,7 @@ describe('config/environment', () => {
       writeFileSync(
         join(tempDirectory, '.env.test.local'),
         [
-          'FIREBASE_PROJECT_ID=loaded-from-file',
+          'APP_FIREBASE_PROJECT_ID=loaded-from-file',
           'ENVIRONMENT_NAME=test',
           'SOURCE_PROVIDER=wanadoo',
           'SOURCE_EMAIL_ADDRESS=source@wanadoo.fr',
@@ -161,7 +161,7 @@ describe('config/environment', () => {
   it('supports Firebase project id fallback variables', () => {
     const env = createValidEnvironment();
 
-    delete env.FIREBASE_PROJECT_ID;
+    delete env.APP_FIREBASE_PROJECT_ID;
     env.GCLOUD_PROJECT = 'fallback-project-id';
 
     const config = readAppConfig({
@@ -322,7 +322,7 @@ describe('config/environment', () => {
   it('throws when the Firebase project id cannot be resolved', () => {
     const env = createValidEnvironment();
 
-    delete env.FIREBASE_PROJECT_ID;
+    delete env.APP_FIREBASE_PROJECT_ID;
 
     expect(() =>
       readAppConfig({
@@ -353,7 +353,7 @@ describe('config/environment', () => {
 
       writeFileSync(
         join(tempDirectory, '.env.local'),
-        'FIREBASE_PROJECT_ID=dotenv-project\n',
+        'APP_FIREBASE_PROJECT_ID=dotenv-project\n',
       );
 
       const loadedPath = loadEnvironmentFile({
@@ -362,7 +362,7 @@ describe('config/environment', () => {
       });
 
       expect(loadedPath).toBe(join(tempDirectory, '.env.local'));
-      expect(mutableEnvironment.FIREBASE_PROJECT_ID).toBe('dotenv-project');
+      expect(mutableEnvironment.APP_FIREBASE_PROJECT_ID).toBe('dotenv-project');
     } finally {
       rmSync(tempDirectory, {
         force: true,

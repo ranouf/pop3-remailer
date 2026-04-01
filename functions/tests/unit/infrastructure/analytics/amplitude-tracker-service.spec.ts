@@ -99,22 +99,26 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
       executionTime: '2026-04-01T00:00:00.000Z',
       jobId: 'job-123',
       processedCount: 1,
+      sourceAccountId: 'orange:source@orange.fr',
       uidl: 'uidl-123',
       unused: undefined,
     });
 
     expect(amplitudeClient.trackedEvents).toEqual([
       {
+        device_id: 'pop3-remailer-backend:test',
         event_properties: {
           environment: 'test',
           executionTime: '2026-04-01T00:00:00.000Z',
           jobId: 'job-123',
           processedCount: 1,
+          sourceAccountId: 'orange:source@orange.fr',
           uidl: 'uidl-123',
         },
         event_type: 'email_transferred',
         insert_id:
           'email_transferred:job-123:uidl-123:2026-04-01T00:00:00.000Z',
+        user_id: 'orange:source@orange.fr',
       },
     ]);
     expect(logger.warnCalls).toHaveLength(0);
@@ -137,6 +141,7 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
 
     expect(amplitudeClient.trackedEvents).toEqual([
       {
+        device_id: 'pop3-remailer-backend:test',
         event_properties: {
           environment: 'test',
           processedCount: 4,
@@ -162,6 +167,7 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
     await expect(
       service.track('gmail_import_failed', {
         jobId: 'job-123',
+        sourceAccountId: 'orange:source@orange.fr',
         uidl: 'uidl-123',
       }),
     ).resolves.toBeUndefined();
@@ -173,6 +179,7 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
         properties: {
           environment: 'test',
           jobId: 'job-123',
+          sourceAccountId: 'orange:source@orange.fr',
           uidl: 'uidl-123',
         },
       },

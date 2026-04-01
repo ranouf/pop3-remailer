@@ -212,6 +212,7 @@ const requireSourceProvider = (env: ConfigEnvironment): SourceProvider => {
 };
 
 const resolveProjectId = (env: ConfigEnvironment): string =>
+  env.APP_FIREBASE_PROJECT_ID?.trim() ||
   env.FIREBASE_PROJECT_ID?.trim() ||
   env.GCLOUD_PROJECT?.trim() ||
   env.GOOGLE_CLOUD_PROJECT?.trim() ||
@@ -219,6 +220,7 @@ const resolveProjectId = (env: ConfigEnvironment): string =>
   (() => {
     throw configError('Missing Firebase project identifier.', {
       keys: [
+        'APP_FIREBASE_PROJECT_ID',
         'FIREBASE_PROJECT_ID',
         'GCLOUD_PROJECT',
         'GOOGLE_CLOUD_PROJECT',

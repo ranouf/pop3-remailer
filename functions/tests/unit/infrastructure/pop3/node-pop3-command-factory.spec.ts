@@ -6,6 +6,7 @@ const { pop3ConstructorMock } = vi.hoisted(() => ({
   pop3ConstructorMock: vi.fn(),
 }));
 const rawClient = {
+  _connect: vi.fn(() => Promise.resolve('+OK authenticated')),
   LIST: vi.fn(() => Promise.resolve(['1', '123'])),
   QUIT: vi.fn(() => Promise.resolve('OK')),
   RETR: vi.fn(() => Promise.resolve('raw-message')),
@@ -24,6 +25,7 @@ describe('infrastructure/pop3/node-pop3-command-factory', () => {
     rawClient.QUIT.mockClear();
     rawClient.RETR.mockClear();
     rawClient.UIDL.mockClear();
+    rawClient._connect.mockClear();
     rawClient.connect.mockClear();
     pop3ConstructorMock.mockImplementation(() => rawClient);
   });
@@ -61,7 +63,8 @@ describe('infrastructure/pop3/node-pop3-command-factory', () => {
     void client.RETR(1);
     void client.QUIT();
 
-    expect(rawClient.connect).toHaveBeenCalledTimes(1);
+    expect(rawClient._connect).toHaveBeenCalledTimes(1);
+    expect(rawClient.connect).not.toHaveBeenCalled();
     expect(rawClient.UIDL).toHaveBeenCalledWith(1);
     expect(rawClient.LIST).toHaveBeenCalledWith(1);
     expect(rawClient.RETR).toHaveBeenCalledWith(1);
