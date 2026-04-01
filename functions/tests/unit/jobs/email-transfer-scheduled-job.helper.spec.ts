@@ -1,0 +1,50 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { ScheduledEmailTransferJobHelper } from '../../../src/jobs/email-transfer-scheduled-job.helper';
+
+describe('jobs/email-transfer-scheduled-job.helper', () => {
+  it('creates a handler that runs the transfer job', async () => {
+    const runJob = vi.fn(() => Promise.resolve({
+      summary: {
+        detectedCount: 0,
+        failedCount: 0,
+        jobId: 'job-1',
+        processedCount: 0,
+        provider: 'orange',
+        skippedCount: 0,
+        sourceAccountId: 'orange:source@orange.fr',
+        startedAt: new Date('2026-04-01T00:00:00.000Z'),
+        status: 'completed',
+        transferredCount: 0,
+      },
+    }));
+    const handler = ScheduledEmailTransferJobHelper.createHandler({
+      runJob,
+    });
+
+    await handler();
+
+    expect(runJob).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates a Firebase scheduled function wrapper', () => {
+    const scheduledFunction = ScheduledEmailTransferJobHelper.createFunction({
+      runJob: vi.fn(() => Promise.resolve({
+        summary: {
+          detectedCount: 0,
+          failedCount: 0,
+          jobId: 'job-1',
+          processedCount: 0,
+          provider: 'orange',
+          skippedCount: 0,
+          sourceAccountId: 'orange:source@orange.fr',
+          startedAt: new Date('2026-04-01T00:00:00.000Z'),
+          status: 'completed',
+          transferredCount: 0,
+        },
+      })),
+    });
+
+    expect(scheduledFunction).toBeTypeOf('function');
+  });
+});

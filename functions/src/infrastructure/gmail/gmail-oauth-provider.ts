@@ -1,14 +1,8 @@
-/* eslint-disable sort-imports */
 import { google } from 'googleapis';
 
 import type { AppConfig } from '../../config/environment';
 import type { GmailOAuthProviderInterface } from './gmail-oauth-provider.interface';
 import type { OAuth2ClientLikeInterface } from './oauth2-client-like.interface';
-
-export class GmailOAuthSettings {
-  public static readonly importScope =
-    'https://www.googleapis.com/auth/gmail.insert';
-}
 
 export class GoogleGmailOAuthProvider implements GmailOAuthProviderInterface {
   public createClient(config: AppConfig['gmail']): OAuth2ClientLikeInterface {

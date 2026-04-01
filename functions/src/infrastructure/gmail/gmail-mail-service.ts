@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { AppConfig } from '../../config/environment';
 import type { RawEmailMessage } from '../../domain/email';
 import { toTransferJobError } from '../../domain/errors';
@@ -15,7 +14,7 @@ import { retry } from '../../shared/retry';
 import type { GmailApiClientFactoryInterface } from './gmail-api-client-factory.interface';
 import type { GmailApiClientInterface } from './gmail-api-client.interface';
 import type { GmailOAuthProviderInterface } from './gmail-oauth-provider.interface';
-import { GmailOAuthSettings } from './gmail-oauth-provider';
+import { GmailOAuthSettings } from './settings/gmail-oauth.settings';
 
 export class GoogleGmailMailService implements GmailMailService {
   private static readonly importedLabelIds = ['INBOX', 'UNREAD'] as const;
