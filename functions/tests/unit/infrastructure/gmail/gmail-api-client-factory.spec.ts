@@ -2,8 +2,8 @@
 import type { gmail_v1 } from 'googleapis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GoogleGmailApiClientFactory } from '../../../../src/infrastructure/gmail/google-gmail-api-client';
-import type { OAuth2ClientLike } from '../../../../src/infrastructure/gmail/gmail-types';
+import { GmailApiClientFactory } from '../../../../src/infrastructure/gmail/gmail-api-client-factory';
+import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/gmail/oauth2-client-like.interface';
 
 const { gmailMock, importMock, listMock } = vi.hoisted(() => {
   const hoistedImportMock = vi.fn();
@@ -30,7 +30,7 @@ vi.mock('googleapis', () => ({
   },
 }));
 
-describe('infrastructure/gmail/google-gmail-api-client', () => {
+describe('infrastructure/gmail/gmail-api-client-factory', () => {
   beforeEach(() => {
     gmailMock.mockClear();
     importMock.mockReset();
@@ -44,8 +44,8 @@ describe('infrastructure/gmail/google-gmail-api-client', () => {
       },
     });
 
-    const factory = new GoogleGmailApiClientFactory();
-    const oauthClient: OAuth2ClientLike = {
+    const factory = new GmailApiClientFactory();
+    const oauthClient: OAuth2ClientLikeInterface = {
       credentials: {
         refresh_token: 'refresh-token',
       },
@@ -88,7 +88,7 @@ describe('infrastructure/gmail/google-gmail-api-client', () => {
       },
     });
 
-    const factory = new GoogleGmailApiClientFactory();
+    const factory = new GmailApiClientFactory();
     const client = factory.create({
       credentials: {},
       setCredentials(): void {},

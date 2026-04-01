@@ -55,7 +55,7 @@ export interface GmailImportedMessageLookup {
   readonly gmailMessageId: string;
 }
 
-export interface GmailMailTarget {
+export interface GmailMailService {
   findImportedMessageByRfc822MessageId(
     gmailUserEmail: string,
     rfc822MessageId: string,

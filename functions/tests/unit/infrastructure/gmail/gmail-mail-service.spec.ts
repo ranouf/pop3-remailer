@@ -1,30 +1,28 @@
 /* eslint-disable sort-imports */
-import type { GmailApiClientFactory } from '../../../../src/infrastructure/gmail/google-gmail-api-client';
-import { GoogleGmailMailTarget } from '../../../../src/infrastructure/gmail/gmail-mail-target';
-import type { GmailOAuthProvider } from '../../../../src/infrastructure/gmail/gmail-oauth-provider';
 import type { RawEmailMessage } from '../../../../src/domain/email';
 import { createUidl } from '../../../../src/domain/uidl';
-import type {
-  GmailApiClient,
-  GmailImportResponse,
-  GmailListMessagesResponse,
-  OAuth2ClientLike,
-} from '../../../../src/infrastructure/gmail/gmail-types';
+import type { GmailApiClientFactoryInterface } from '../../../../src/infrastructure/gmail/gmail-api-client-factory.interface';
+import type { GmailApiClientInterface } from '../../../../src/infrastructure/gmail/gmail-api-client.interface';
+import { GoogleGmailMailService } from '../../../../src/infrastructure/gmail/gmail-mail-service';
+import type { GmailOAuthProviderInterface } from '../../../../src/infrastructure/gmail/gmail-oauth-provider.interface';
+import type { GmailImportResponse } from '../../../../src/infrastructure/gmail/models/gmail-import-response';
+import type { GmailListMessagesResponse } from '../../../../src/infrastructure/gmail/models/gmail-list-messages-response';
+import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/gmail/oauth2-client-like.interface';
 
-class FakeOAuthProvider implements GmailOAuthProvider {
-  public readonly client: OAuth2ClientLike = {
+class FakeOAuthProvider implements GmailOAuthProviderInterface {
+  public readonly client: OAuth2ClientLikeInterface = {
     credentials: {},
     setCredentials(credentials: { readonly refresh_token: string }): void {
       this.credentials = credentials;
     },
   };
 
-  public createClient(): OAuth2ClientLike {
+  public createClient(): OAuth2ClientLikeInterface {
     return this.client;
   }
 }
 
-class FakeGmailApiClient implements GmailApiClient {
+class FakeGmailApiClient implements GmailApiClientInterface {
   public readonly importCalls: Array<{
     readonly requestBody: {
       readonly internalDateSource: 'dateHeader';
@@ -87,10 +85,10 @@ class FakeGmailApiClient implements GmailApiClient {
   };
 }
 
-class FakeGmailApiClientFactory implements GmailApiClientFactory {
+class FakeGmailApiClientFactory implements GmailApiClientFactoryInterface {
   public readonly client = new FakeGmailApiClient();
 
-  public create(): GmailApiClient {
+  public create(): GmailApiClientInterface {
     return this.client;
   }
 }
@@ -103,11 +101,11 @@ const buildRawEmailMessage = (): RawEmailMessage => ({
   uidl: createUidl('uidl-gmail-1'),
 });
 
-describe('infrastructure/gmail/gmail-mail-target', () => {
+describe('infrastructure/gmail/gmail-mail-service', () => {
   it('imports a raw message into Gmail and preserves the raw payload', async () => {
     const oauthProvider = new FakeOAuthProvider();
     const apiClientFactory = new FakeGmailApiClientFactory();
-    const target = new GoogleGmailMailTarget(
+    const service = new GoogleGmailMailService(
       {
         clientId: 'gmail-client-id',
         clientSecret: 'gmail-client-secret',
@@ -120,7 +118,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
       apiClientFactory,
     );
 
-    const result = await target.importMessage(
+    const result = await service.importMessage(
       'destination@gmail.com',
       buildRawEmailMessage(),
     );
@@ -143,7 +141,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
   });
 
   it('looks up an imported Gmail message by RFC822 message id', async () => {
-    const target = new GoogleGmailMailTarget(
+    const service = new GoogleGmailMailService(
       {
         clientId: 'gmail-client-id',
         clientSecret: 'gmail-client-secret',
@@ -156,7 +154,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
       new FakeGmailApiClientFactory(),
     );
 
-    const lookup = await target.findImportedMessageByRfc822MessageId(
+    const lookup = await service.findImportedMessageByRfc822MessageId(
       'destination@gmail.com',
       'abc123@example.com',
     );
@@ -174,7 +172,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
       },
     };
 
-    const target = new GoogleGmailMailTarget(
+    const service = new GoogleGmailMailService(
       {
         clientId: 'gmail-client-id',
         clientSecret: 'gmail-client-secret',
@@ -188,7 +186,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
     );
 
     await expect(
-      target.findImportedMessageByRfc822MessageId(
+      service.findImportedMessageByRfc822MessageId(
         'destination@gmail.com',
         'missing@example.com',
       ),
@@ -198,7 +196,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
   it('wraps Gmail import failures into a typed technical error', async () => {
     const apiClientFactory = new FakeGmailApiClientFactory();
     apiClientFactory.client.importShouldFail = true;
-    const target = new GoogleGmailMailTarget(
+    const service = new GoogleGmailMailService(
       {
         clientId: 'gmail-client-id',
         clientSecret: 'gmail-client-secret',
@@ -212,7 +210,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
     );
 
     await expect(
-      target.importMessage('destination@gmail.com', buildRawEmailMessage()),
+      service.importMessage('destination@gmail.com', buildRawEmailMessage()),
     ).rejects.toMatchObject({
       category: 'technical',
       code: 'GMAIL_IMPORT_FAILED',
@@ -222,7 +220,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
   it('wraps Gmail lookup failures into a typed technical error', async () => {
     const apiClientFactory = new FakeGmailApiClientFactory();
     apiClientFactory.client.listShouldFail = true;
-    const target = new GoogleGmailMailTarget(
+    const service = new GoogleGmailMailService(
       {
         clientId: 'gmail-client-id',
         clientSecret: 'gmail-client-secret',
@@ -236,7 +234,7 @@ describe('infrastructure/gmail/gmail-mail-target', () => {
     );
 
     await expect(
-      target.findImportedMessageByRfc822MessageId(
+      service.findImportedMessageByRfc822MessageId(
         'destination@gmail.com',
         'abc123@example.com',
       ),

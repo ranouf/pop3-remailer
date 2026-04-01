@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { SourceAccount } from '../../../../src/domain/email';
 import { createUidl } from '../../../../src/domain/uidl';
-import type { Pop3CommandClient } from '../../../../src/infrastructure/pop3/models/pop3-command-client';
-import type { Pop3CommandFactory } from '../../../../src/infrastructure/pop3/models/pop3-command-factory';
 import { NodePop3MailService } from '../../../../src/infrastructure/pop3/node-pop3-mail-service';
+import type { Pop3CommandClientInterface } from '../../../../src/infrastructure/pop3/pop3-command-client.interface';
+import type { Pop3CommandFactoryInterface } from '../../../../src/infrastructure/pop3/pop3-command-factory.interface';
 
-class FakePop3CommandClient implements Pop3CommandClient {
+class FakePop3CommandClient implements Pop3CommandClientInterface {
   public connectCalls = 0;
   public listCalls: Array<number | string | undefined> = [];
   public quitCalls = 0;
@@ -85,10 +85,10 @@ class FakePop3CommandClient implements Pop3CommandClient {
   }
 }
 
-class FakePop3CommandFactory implements Pop3CommandFactory {
+class FakePop3CommandFactory implements Pop3CommandFactoryInterface {
   public readonly client = new FakePop3CommandClient();
 
-  public create(): Pop3CommandClient {
+  public create(): Pop3CommandClientInterface {
     return this.client;
   }
 }

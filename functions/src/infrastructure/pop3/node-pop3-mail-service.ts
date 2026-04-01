@@ -12,20 +12,20 @@ import {
 } from '../../domain/errors';
 import type { Pop3MailService } from '../../domain/ports';
 import { retry } from '../../shared/retry';
-import type { Pop3CommandClient } from './models/pop3-command-client';
-import type { Pop3CommandFactory } from './models/pop3-command-factory';
+import type { Pop3CommandClientInterface } from './pop3-command-client.interface';
+import type { Pop3CommandFactoryInterface } from './pop3-command-factory.interface';
 import { Pop3ResponseParser } from './pop3-response-parser';
 
 export class NodePop3MailService implements Pop3MailService {
   private readonly maxMessagesPerRun: number;
-  private readonly pop3CommandFactory: Pop3CommandFactory;
+  private readonly pop3CommandFactory: Pop3CommandFactoryInterface;
   private readonly pop3Config: AppConfig['pop3'];
   private readonly responseParser: Pop3ResponseParser;
 
   public constructor(
     pop3Config: AppConfig['pop3'],
     maxMessagesPerRun: number,
-    pop3CommandFactory: Pop3CommandFactory,
+    pop3CommandFactory: Pop3CommandFactoryInterface,
     responseParser: Pop3ResponseParser = new Pop3ResponseParser(),
   ) {
     this.pop3Config = pop3Config;
@@ -283,7 +283,7 @@ export class NodePop3MailService implements Pop3MailService {
   }
 
   private async withClient<T>(
-    operation: (client: Pop3CommandClient) => Promise<T>,
+    operation: (client: Pop3CommandClientInterface) => Promise<T>,
     sourceAccount: SourceAccount,
   ): Promise<T> {
     const client = this.pop3CommandFactory.create(this.pop3Config);

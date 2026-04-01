@@ -1,6 +1,6 @@
 import {
+  GmailOAuthSettings,
   GoogleGmailOAuthProvider,
-  gmailImportScope,
 } from '../../../../src/infrastructure/gmail/gmail-oauth-provider';
 
 describe('infrastructure/gmail/gmail-oauth-provider', () => {
@@ -17,7 +17,7 @@ describe('infrastructure/gmail/gmail-oauth-provider', () => {
     });
 
     expect(client.credentials.refresh_token).toBe('refresh-token');
-    expect(gmailImportScope).toBe(
+    expect(GmailOAuthSettings.importScope).toBe(
       'https://www.googleapis.com/auth/gmail.insert',
     );
   });

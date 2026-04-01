@@ -2,14 +2,12 @@
 import type { OAuth2Client } from 'google-auth-library';
 import { google, type gmail_v1 } from 'googleapis';
 
-import type { GmailApiClient, OAuth2ClientLike } from './gmail-types';
+import type { GmailApiClientFactoryInterface } from './gmail-api-client-factory.interface';
+import type { GmailApiClientInterface } from './gmail-api-client.interface';
+import type { OAuth2ClientLikeInterface } from './oauth2-client-like.interface';
 
-export interface GmailApiClientFactory {
-  create(auth: OAuth2ClientLike): GmailApiClient;
-}
-
-export class GoogleGmailApiClientFactory implements GmailApiClientFactory {
-  public create(auth: OAuth2ClientLike): GmailApiClient {
+export class GmailApiClientFactory implements GmailApiClientFactoryInterface {
+  public create(auth: OAuth2ClientLikeInterface): GmailApiClientInterface {
     const googleClient = google.gmail({
       auth: auth as unknown as OAuth2Client,
       version: 'v1',

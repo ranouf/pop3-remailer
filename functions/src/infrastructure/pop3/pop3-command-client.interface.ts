@@ -1,4 +1,4 @@
-export interface Pop3CommandClient {
+export interface Pop3CommandClientInterface {
   LIST(messageNumber?: number | string): Promise<string[][] | string[]>;
   QUIT(): Promise<string>;
   RETR(messageNumber: number): Promise<string>;

@@ -1,41 +1,33 @@
 /* eslint-disable sort-imports */
 import type { AppConfig } from '../../config/environment';
-import { toTransferJobError } from '../../domain/errors';
 import type { RawEmailMessage } from '../../domain/email';
+import { toTransferJobError } from '../../domain/errors';
 import type {
   GmailImportedMessageLookup,
   GmailImportResult,
-  GmailMailTarget,
+  GmailMailService,
 } from '../../domain/ports';
 import {
   encodeMessageForGmailImport,
   extractRfc822MessageId,
 } from '../../shared/email-message';
 import { retry } from '../../shared/retry';
-import type { GmailApiClientFactory } from './google-gmail-api-client';
-import {
-  gmailImportScope,
-  type GmailOAuthProvider,
-} from './gmail-oauth-provider';
-import type { GmailApiClient } from './gmail-types';
+import type { GmailApiClientFactoryInterface } from './gmail-api-client-factory.interface';
+import type { GmailApiClientInterface } from './gmail-api-client.interface';
+import type { GmailOAuthProviderInterface } from './gmail-oauth-provider.interface';
+import { GmailOAuthSettings } from './gmail-oauth-provider';
 
-const importedLabelIds = ['INBOX', 'UNREAD'] as const;
+export class GoogleGmailMailService implements GmailMailService {
+  private static readonly importedLabelIds = ['INBOX', 'UNREAD'] as const;
 
-const escapeGmailQueryValue = (value: string): string =>
-  value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-
-const buildRfc822MessageIdQuery = (messageId: string): string =>
-  `rfc822msgid:${escapeGmailQueryValue(messageId)}`;
-
-export class GoogleGmailMailTarget implements GmailMailTarget {
+  private readonly apiClientFactory: GmailApiClientFactoryInterface;
   private readonly gmailConfig: AppConfig['gmail'];
-  private readonly apiClientFactory: GmailApiClientFactory;
-  private readonly oauthProvider: GmailOAuthProvider;
+  private readonly oauthProvider: GmailOAuthProviderInterface;
 
   public constructor(
     gmailConfig: AppConfig['gmail'],
-    oauthProvider: GmailOAuthProvider,
-    apiClientFactory: GmailApiClientFactory,
+    oauthProvider: GmailOAuthProviderInterface,
+    apiClientFactory: GmailApiClientFactoryInterface,
   ) {
     this.gmailConfig = gmailConfig;
     this.oauthProvider = oauthProvider;
@@ -53,7 +45,7 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
         async () =>
           gmailClient.users.messages.list({
             maxResults: 1,
-            q: buildRfc822MessageIdQuery(rfc822MessageId),
+            q: this.buildRfc822MessageIdQuery(rfc822MessageId),
             userId: gmailUserEmail,
           }),
         {
@@ -63,27 +55,18 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
             details: {
               gmailUserEmail,
               rfc822MessageId,
-              scope: gmailImportScope,
+              scope: GmailOAuthSettings.importScope,
             },
             message: 'Failed to query Gmail for an imported message.',
             retriable: true,
           },
-          policy: {
-            backoffMultiplier: 2,
-            initialDelayMs: 250,
-            maxAttempts: this.gmailConfig.maxImportRetries + 1,
-            maxDelayMs: this.gmailConfig.timeoutMs,
-          },
+          policy: this.buildRetryPolicy(),
         },
       );
 
       const gmailMessageId = response.data.messages?.[0]?.id ?? null;
 
-      return gmailMessageId === null
-        ? null
-        : {
-            gmailMessageId,
-          };
+      return gmailMessageId === null ? null : { gmailMessageId };
     } catch (error) {
       throw toTransferJobError(error, {
         category: 'technical',
@@ -91,7 +74,7 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
         details: {
           gmailUserEmail,
           rfc822MessageId,
-          scope: gmailImportScope,
+          scope: GmailOAuthSettings.importScope,
         },
         message: 'Failed to query Gmail for an imported message.',
         retriable: true,
@@ -111,7 +94,7 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
           gmailClient.users.messages.import({
             requestBody: {
               internalDateSource: 'dateHeader',
-              labelIds: importedLabelIds,
+              labelIds: GoogleGmailMailService.importedLabelIds,
               raw: encodeMessageForGmailImport(message.rawMessage),
             },
             userId: gmailUserEmail,
@@ -123,18 +106,13 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
             details: {
               gmailUserEmail,
               messageNumber: message.messageNumber,
-              scope: gmailImportScope,
+              scope: GmailOAuthSettings.importScope,
               uidl: message.uidl,
             },
             message: 'Failed to import the email into Gmail.',
             retriable: true,
           },
-          policy: {
-            backoffMultiplier: 2,
-            initialDelayMs: 250,
-            maxAttempts: this.gmailConfig.maxImportRetries + 1,
-            maxDelayMs: this.gmailConfig.timeoutMs,
-          },
+          policy: this.buildRetryPolicy(),
         },
       );
 
@@ -159,7 +137,7 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
           gmailUserEmail,
           messageId: extractRfc822MessageId(message.rawMessage),
           messageNumber: message.messageNumber,
-          scope: gmailImportScope,
+          scope: GmailOAuthSettings.importScope,
           uidl: message.uidl,
         },
         message: 'Failed to import the email into Gmail.',
@@ -168,9 +146,31 @@ export class GoogleGmailMailTarget implements GmailMailTarget {
     }
   }
 
-  private createClient(): GmailApiClient {
+  private buildRetryPolicy(): {
+    readonly backoffMultiplier: number;
+    readonly initialDelayMs: number;
+    readonly maxAttempts: number;
+    readonly maxDelayMs: number;
+  } {
+    return {
+      backoffMultiplier: 2,
+      initialDelayMs: 250,
+      maxAttempts: this.gmailConfig.maxImportRetries + 1,
+      maxDelayMs: this.gmailConfig.timeoutMs,
+    };
+  }
+
+  private buildRfc822MessageIdQuery(messageId: string): string {
+    return `rfc822msgid:${this.escapeGmailQueryValue(messageId)}`;
+  }
+
+  private createClient(): GmailApiClientInterface {
     const oauthClient = this.oauthProvider.createClient(this.gmailConfig);
 
     return this.apiClientFactory.create(oauthClient);
+  }
+
+  private escapeGmailQueryValue(value: string): string {
+    return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
   }
 }
