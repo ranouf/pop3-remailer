@@ -1,0 +1,14 @@
+.DS_Store
+.firebase/
+.firebaserc
+.idea/
+.vscode/
+.vs/
+node_modules/
+functions/node_modules/
+functions/lib/
+functions/coverage/
+functions/.env.local
+functions/.env.test.local
+coverage/
+*.log

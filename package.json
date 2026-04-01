@@ -1,0 +1,29 @@
+{
+  "name": "pop3-remailer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "POP3S to Gmail importer powered by Firebase Functions v2",
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": "20.x"
+  },
+  "workspaces": [
+    "functions"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspace functions",
+    "lint:fix": "npm run lint:fix --workspace functions",
+    "format": "npm run format --workspace functions",
+    "format:check": "npm run format:check --workspace functions",
+    "typecheck": "npm run typecheck --workspace functions",
+    "build": "npm run build --workspace functions",
+    "test": "npm run test --workspace functions",
+    "coverage": "npm run coverage --workspace functions",
+    "verify": "npm run lint && npm run format:check && npm run typecheck && npm run build && npm run test",
+    "emulators": "firebase emulators:start --only functions,firestore",
+    "deploy": "firebase deploy --only functions,firestore:rules"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.25.0"
+  }
+}

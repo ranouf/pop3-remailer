@@ -1,0 +1,8 @@
+.firebase
+.vs
+coverage
+functions/coverage
+functions/lib
+functions/node_modules
+node_modules
+package-lock.json
