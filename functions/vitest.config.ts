@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['tests/**/*.spec.ts'],
+    exclude: ['tests/unit/github/**/*.spec.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -17,6 +18,7 @@ export default defineConfig({
         statements: 90,
       },
       exclude: [
+        '../.github/**',
         'coverage/**',
         'eslint.config.js',
         'lib/**',
