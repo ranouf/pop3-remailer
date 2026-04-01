@@ -6,7 +6,7 @@ import type {
 import type {
   FirestoreDocumentReference,
   FirestoreDocumentSnapshot,
-} from '../firestore-types';
+} from '../types';
 import { FirebaseAdminFirestoreDocumentSnapshot } from './firebase-admin-firestore-document-snapshot';
 
 export class FirebaseAdminFirestoreDocumentReference<
@@ -22,6 +22,10 @@ export class FirebaseAdminFirestoreDocumentReference<
     return new FirebaseAdminFirestoreDocumentSnapshot(
       await this.documentReference.get(),
     );
+  }
+
+  public async delete(): Promise<void> {
+    await this.documentReference.delete();
   }
 
   public async set(

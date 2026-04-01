@@ -22,6 +22,11 @@ const config: AppConfig = {
   job: {
     maxMessagesPerRun: 50,
     schedule: 'every 5 minutes',
+    uidlCleanup: {
+      cleanupBatchSize: 250,
+      minimumRetainedCount: 100,
+      retentionDays: 30,
+    },
   },
   pop3: {
     host: 'pop.orange.fr',

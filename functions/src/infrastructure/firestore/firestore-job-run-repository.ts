@@ -5,7 +5,7 @@ import {
   toStoredJobRunRecord,
   type StoredJobRunRecord,
 } from './firestore-mappers';
-import type { FirestoreDatabase } from './firestore-types';
+import type { FirestoreDatabase } from './types';
 
 export class FirestoreJobRunRepository implements JobRunRepository {
   private readonly database: FirestoreDatabase;

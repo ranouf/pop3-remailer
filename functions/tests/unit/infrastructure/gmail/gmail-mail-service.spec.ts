@@ -4,8 +4,10 @@ import type { GmailApiClientFactoryInterface } from '../../../../src/infrastruct
 import type { GmailApiClientInterface } from '../../../../src/infrastructure/gmail/gmail-api-client.interface';
 import { GoogleGmailMailService } from '../../../../src/infrastructure/gmail/gmail-mail-service';
 import type { GmailOAuthProviderInterface } from '../../../../src/infrastructure/gmail/gmail-oauth-provider.interface';
-import type { GmailImportResponse } from '../../../../src/infrastructure/gmail/models/gmail-import-response';
-import type { GmailListMessagesResponse } from '../../../../src/infrastructure/gmail/models/gmail-list-messages-response';
+import type {
+  GmailImportResponse,
+  GmailListMessagesResponse,
+} from '../../../../src/infrastructure/gmail/models';
 import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/gmail/oauth2-client-like.interface';
 
 class FakeOAuthProvider implements GmailOAuthProviderInterface {

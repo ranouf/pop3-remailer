@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { EmailTransferJobResult } from '../../../src/application/models/email-transfer-job-result';
+import type { EmailTransferJobResult } from '../../../src/application/models';
 import { ScheduledEmailTransferJobHelper } from '../../../src/jobs/email-transfer-scheduled-job.helper';
 
 describe('jobs/email-transfer-scheduled-job.helper', () => {

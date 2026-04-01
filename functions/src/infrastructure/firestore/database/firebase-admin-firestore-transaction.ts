@@ -8,7 +8,7 @@ import type {
   FirestoreDocumentReference,
   FirestoreDocumentSnapshot,
   FirestoreTransaction,
-} from '../firestore-types';
+} from '../types';
 import { FirebaseAdminFirestoreDocumentReference } from './firebase-admin-firestore-document-reference';
 import { FirebaseAdminFirestoreDocumentSnapshot } from './firebase-admin-firestore-document-snapshot';
 

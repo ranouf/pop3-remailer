@@ -1,10 +1,11 @@
 import type {
+  FirestoreCollectionDocument,
   FirestoreCollectionReference,
   FirestoreDatabase,
   FirestoreDocumentReference,
   FirestoreDocumentSnapshot,
   FirestoreTransaction,
-} from '../../../src/infrastructure/firestore/firestore-types';
+} from '../../../src/infrastructure/firestore/types';
 
 type CollectionStore = Map<string, unknown>;
 
@@ -91,6 +92,11 @@ class InMemoryDocumentReference<T> implements FirestoreDocumentReference<T> {
     );
   }
 
+  public delete(): Promise<void> {
+    this.collectionStore.delete(this.documentId);
+    return Promise.resolve();
+  }
+
   public set(
     data: Partial<T>,
     options?: { readonly merge?: boolean },
@@ -124,6 +130,15 @@ class InMemoryCollectionReference<
 
   public doc(documentId: string): FirestoreDocumentReference<T> {
     return new InMemoryDocumentReference<T>(this.collectionStore, documentId);
+  }
+
+  public listDocuments(): Promise<readonly FirestoreCollectionDocument<T>[]> {
+    return Promise.resolve(
+      [...this.collectionStore.entries()].map(([documentId, data]) => ({
+        data: deepClone(data as T),
+        documentId,
+      })),
+    );
   }
 }
 
@@ -187,5 +202,19 @@ export class InMemoryFirestoreDatabase implements FirestoreDatabase {
     const collectionStore = this.collections.get(collectionName);
 
     return Promise.resolve(collectionStore?.get(documentId) as T | undefined);
+  }
+
+  public writeDocument<T>(
+    collectionName: string,
+    documentId: string,
+    value: T,
+  ): Promise<void> {
+    const collectionStore =
+      this.collections.get(collectionName) ?? new Map<string, unknown>();
+
+    collectionStore.set(documentId, deepClone(value));
+    this.collections.set(collectionName, collectionStore);
+
+    return Promise.resolve();
   }
 }

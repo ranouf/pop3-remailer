@@ -5,7 +5,8 @@
 
 `pop3-remailer` is a Firebase Functions v2 project that reads a POP3S mailbox
 every 5 minutes, imports new messages into Gmail, deduplicates them through
-Firestore UIDL records, and tracks the job in Amplitude.
+Firestore UIDL records, applies a retention cleanup policy, and tracks the job
+in Amplitude.
 
 ## Objective
 
@@ -59,6 +60,12 @@ Required keys are documented in:
 
 - [functions/.env.example](C:\Users\CedricArnould\source\repos\pop3-remailer\functions\.env.example)
 - [docs/github-secrets.md](C:\Users\CedricArnould\source\repos\pop3-remailer\docs\github-secrets.md)
+
+UIDL retention is configurable with:
+
+- `UIDL_RETENTION_DAYS`
+- `UIDL_MINIMUM_RETAINED_COUNT`
+- `UIDL_CLEANUP_BATCH_SIZE`
 
 ## Local execution
 
@@ -131,3 +138,5 @@ OVERVIEW.md
 - `FIREBASE_PROJECT_ID` is used by the workflow itself, but it is intentionally
   not written into the deployed dotenv file because Firebase reserves
   `FIREBASE_*` keys in function environment configuration.
+- Imported UIDL records are cleaned up after the configured retention window,
+  but the most recent retained floor is always preserved per source account.

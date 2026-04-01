@@ -2,7 +2,7 @@ import type { AmplitudeReturn, Result } from '@amplitude/analytics-core';
 
 import { AmplitudeTrackerService } from '../../../../src/infrastructure/analytics/amplitude-tracker-service';
 import type { AmplitudeNodeClientInterface } from '../../../../src/infrastructure/analytics/amplitude-node-client.interface';
-import type { AmplitudeNodeTrackEventModel } from '../../../../src/infrastructure/analytics/models/amplitude-node-track-event-model';
+import type { AmplitudeNodeTrackEventModel } from '../../../../src/infrastructure/analytics/models';
 import type { StructuredLogger } from '../../../../src/domain/ports';
 import { describe, expect, it, vi } from 'vitest';
 

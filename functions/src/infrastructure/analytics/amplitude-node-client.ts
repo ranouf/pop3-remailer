@@ -2,7 +2,7 @@ import { createInstance } from '@amplitude/analytics-node';
 import type * as AmplitudeCoreTypes from '@amplitude/analytics-core';
 
 import type { AmplitudeNodeClientInterface } from './amplitude-node-client.interface';
-import type { AmplitudeNodeTrackEventModel } from './models/amplitude-node-track-event-model';
+import type { AmplitudeNodeTrackEventModel } from './models';
 
 export class AmplitudeNodeClient implements AmplitudeNodeClientInterface {
   private static readonly defaultFlushIntervalMillis = 5000;

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   FirestoreDocumentReference,
   FirestoreDocumentSnapshot,
-} from '../../../../../src/infrastructure/firestore/firestore-types';
+} from '../../../../../src/infrastructure/firestore/types';
 import { FirebaseAdminFirestoreDocumentReference } from '../../../../../src/infrastructure/firestore/database/firebase-admin-firestore-document-reference';
 import { FirebaseAdminFirestoreTransaction } from '../../../../../src/infrastructure/firestore/database/firebase-admin-firestore-transaction';
 
@@ -95,6 +95,7 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-transaction
     const documentReference: FirestoreDocumentReference<{
       readonly value: string;
     }> = {
+      delete: vi.fn(() => Promise.resolve()),
       get: documentReferenceGet,
       set: vi.fn(() => Promise.resolve()),
     };

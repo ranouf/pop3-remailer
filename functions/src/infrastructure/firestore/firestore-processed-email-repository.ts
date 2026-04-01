@@ -1,6 +1,7 @@
 import type { SourceAccount } from '../../domain/email';
 import type { ProcessedEmailRepository } from '../../domain/ports';
 import type {
+  ProcessedEmailCleanupResult,
   ProcessedEmailMetadata,
   ProcessedEmailRecord,
   UidlClaimResult,
@@ -15,7 +16,7 @@ import {
   createProcessedEmailDocumentId,
   processedEmailsCollectionName,
 } from './firestore-keys';
-import type { FirestoreDatabase } from './firestore-types';
+import type { FirestoreDatabase } from './types';
 
 const createProcessingRecord = (
   sourceAccount: SourceAccount,
@@ -124,6 +125,52 @@ export class FirestoreProcessedEmailRepository implements ProcessedEmailReposito
     });
   }
 
+  public async cleanupImportedRecords(params: {
+    readonly cleanupBatchSize: number;
+    readonly minimumRetainedCount: number;
+    readonly now: Date;
+    readonly retentionDays: number;
+    readonly sourceAccountId: string;
+  }): Promise<ProcessedEmailCleanupResult> {
+    const importedRecords = [
+      ...(await this.listImportedRecords(params.sourceAccountId)),
+    ].sort(
+      (leftRecord: ProcessedEmailRecord, rightRecord: ProcessedEmailRecord) =>
+        this.toImportedAtTime(rightRecord) - this.toImportedAtTime(leftRecord),
+    );
+    const retainedUidls = new Set(
+      importedRecords
+        .slice(0, params.minimumRetainedCount)
+        .map((record) => record.uidl),
+    );
+    const retentionCutoff = new Date(
+      params.now.getTime() - params.retentionDays * 24 * 60 * 60 * 1000,
+    );
+    const deletionCandidates = importedRecords
+      .filter(
+        (record) =>
+          record.importedAt !== undefined &&
+          record.importedAt < retentionCutoff &&
+          !retainedUidls.has(record.uidl),
+      )
+      .slice(0, params.cleanupBatchSize);
+
+    await Promise.all(
+      deletionCandidates.map((record) =>
+        this.getCollection()
+          .doc(
+            createProcessedEmailDocumentId(params.sourceAccountId, record.uidl),
+          )
+          .delete(),
+      ),
+    );
+
+    return {
+      deletedCount: deletionCandidates.length,
+      retainedCount: importedRecords.length - deletionCandidates.length,
+    };
+  }
+
   public async findByUidl(
     sourceAccountId: string,
     uidl: Uidl,
@@ -193,5 +240,23 @@ export class FirestoreProcessedEmailRepository implements ProcessedEmailReposito
     return this.database.collection<StoredProcessedEmailRecord>(
       processedEmailsCollectionName,
     );
+  }
+
+  private async listImportedRecords(
+    sourceAccountId: string,
+  ): Promise<readonly ProcessedEmailRecord[]> {
+    const storedDocuments = await this.getCollection().listDocuments();
+
+    return storedDocuments
+      .map((document) => toProcessedEmailRecord(document.data))
+      .filter(
+        (record) =>
+          record.sourceAccountId === sourceAccountId &&
+          record.status === 'imported',
+      );
+  }
+
+  private toImportedAtTime(record: ProcessedEmailRecord): number {
+    return record.importedAt?.getTime() ?? record.updatedAt.getTime();
   }
 }

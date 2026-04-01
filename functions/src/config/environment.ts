@@ -36,6 +36,11 @@ export interface AppConfig {
   readonly job: {
     readonly maxMessagesPerRun: number;
     readonly schedule: typeof scheduledTransferCron;
+    readonly uidlCleanup: {
+      readonly cleanupBatchSize: number;
+      readonly minimumRetainedCount: number;
+      readonly retentionDays: number;
+    };
   };
   readonly pop3: {
     readonly host: string;
@@ -145,6 +150,22 @@ const requireInteger = (
   }
 
   return value;
+};
+
+const readOptionalInteger = (
+  env: ConfigEnvironment,
+  key: string,
+  fallbackValue: number,
+  options: {
+    readonly max?: number;
+    readonly min?: number;
+  },
+): number => {
+  if (env[key]?.trim() === undefined || env[key]?.trim().length === 0) {
+    return fallbackValue;
+  }
+
+  return requireInteger(env, key, options);
 };
 
 const parseBoolean = (env: ConfigEnvironment, key: string): boolean => {
@@ -290,6 +311,30 @@ export const readAppConfig = (
         max: 500,
       }),
       schedule: scheduledTransferCron,
+      uidlCleanup: {
+        cleanupBatchSize: readOptionalInteger(
+          env,
+          'UIDL_CLEANUP_BATCH_SIZE',
+          250,
+          {
+            min: 1,
+            max: 1000,
+          },
+        ),
+        minimumRetainedCount: readOptionalInteger(
+          env,
+          'UIDL_MINIMUM_RETAINED_COUNT',
+          100,
+          {
+            min: 100,
+            max: 10000,
+          },
+        ),
+        retentionDays: readOptionalInteger(env, 'UIDL_RETENTION_DAYS', 30, {
+          min: 1,
+          max: 3650,
+        }),
+      },
     },
     pop3: {
       host: requireNonEmptyString(env, 'POP3_HOST'),

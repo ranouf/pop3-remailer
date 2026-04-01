@@ -1,5 +1,5 @@
 import type { EmailTransferJobDependencies } from './email-transfer-job-dependencies.interface';
-import type { EmailTransferJobResult } from './models/email-transfer-job-result';
+import type { EmailTransferJobResult } from './models';
 import type { AppConfig } from '../config/environment';
 import type { Pop3MessageMetadata, SourceAccount } from '../domain/email';
 import {
@@ -84,6 +84,8 @@ export class EmailTransferJob {
         counts = await this.processMessage(message, context, counts);
       }
 
+      await this.cleanupImportedRecords(context);
+
       summary = await this.completeJob(summary, context, counts);
 
       return {
@@ -144,6 +146,47 @@ export class EmailTransferJob {
     await this.analyticsTracker.flush();
 
     return finalizedSummary;
+  }
+
+  private async cleanupImportedRecords(
+    context: OperationContext,
+  ): Promise<void> {
+    try {
+      const cleanupResult =
+        await this.processedEmailRepository.cleanupImportedRecords({
+          cleanupBatchSize: this.config.job.uidlCleanup.cleanupBatchSize,
+          minimumRetainedCount:
+            this.config.job.uidlCleanup.minimumRetainedCount,
+          now: this.clock.now(),
+          retentionDays: this.config.job.uidlCleanup.retentionDays,
+          sourceAccountId: this.config.sourceAccount.id,
+        });
+
+      this.logger.info('Processed email cleanup completed.', {
+        deletedCount: cleanupResult.deletedCount,
+        executionTime: context.executionTime,
+        jobId: context.jobId,
+        retainedCount: cleanupResult.retainedCount,
+        sourceAccountId: this.config.sourceAccount.id,
+      });
+    } catch (error) {
+      const cleanupError = this.toJobError(error, {
+        code: 'UIDL_CLEANUP_FAILED',
+        details: {
+          jobId: context.jobId,
+          sourceAccountId: this.config.sourceAccount.id,
+        },
+        message: 'Failed to cleanup imported UIDL records.',
+      });
+
+      this.logger.warn('Processed email cleanup failed.', {
+        code: cleanupError.code,
+        error: cleanupError.message,
+        executionTime: context.executionTime,
+        jobId: context.jobId,
+        sourceAccountId: this.config.sourceAccount.id,
+      });
+    }
   }
 
   private buildEmailProperties(

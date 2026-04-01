@@ -202,4 +202,89 @@ describe('infrastructure/firestore/firestore-processed-email-repository', () => 
       status: 'failed',
     });
   });
+
+  it('cleans up imported UIDLs older than the retention window while keeping the minimum retained count', async () => {
+    const database = new InMemoryFirestoreDatabase();
+    const repository = new FirestoreProcessedEmailRepository(database);
+    const now = new Date('2026-04-30T00:00:00.000Z');
+
+    for (let index = 1; index <= 105; index += 1) {
+      const uidl = createUidl(`cleanup-uidl-${index}`);
+
+      await repository.claimForProcessing({
+        jobId: `job-cleanup-${index}`,
+        metadata: {
+          messageNumber: index,
+        },
+        sourceAccount,
+        uidl,
+      });
+      await repository.markImported({
+        sourceAccountId: sourceAccount.id,
+        uidl,
+        gmailMessageId: `gmail-${index}`,
+      });
+
+      await database.writeDocument<StoredProcessedEmailRecord>(
+        processedEmailsCollectionName,
+        createProcessedEmailDocumentId(sourceAccount.id, uidl),
+        {
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          gmailMessageId: `gmail-${index}`,
+          importedAt: new Date(
+            index <= 5
+              ? `2026-02-0${index}T00:00:00.000Z`
+              : index <= 100
+                ? `2026-03-${String(((index - 6) % 28) + 1).padStart(2, '0')}T00:00:00.000Z`
+                : `2026-04-${String(index - 100).padStart(2, '0')}T00:00:00.000Z`,
+          ),
+          metadata: {
+            claimJobId: `job-cleanup-${index}`,
+            messageNumber: index,
+          },
+          sourceAccountId: sourceAccount.id,
+          sourceProvider: sourceAccount.provider,
+          status: 'imported',
+          uidl,
+          updatedAt: new Date(
+            index <= 5
+              ? `2026-02-0${index}T00:00:00.000Z`
+              : index <= 100
+                ? `2026-03-${String(((index - 6) % 28) + 1).padStart(2, '0')}T00:00:00.000Z`
+                : `2026-04-${String(index - 100).padStart(2, '0')}T00:00:00.000Z`,
+          ),
+        },
+      );
+    }
+
+    const cleanupResult = await repository.cleanupImportedRecords({
+      cleanupBatchSize: 250,
+      minimumRetainedCount: 100,
+      now,
+      retentionDays: 30,
+      sourceAccountId: sourceAccount.id,
+    });
+
+    expect(cleanupResult).toEqual({
+      deletedCount: 5,
+      retainedCount: 100,
+    });
+
+    const deletedRecord = await repository.findByUidl(
+      sourceAccount.id,
+      createUidl('cleanup-uidl-1'),
+    );
+    const retainedOldRecord = await repository.findByUidl(
+      sourceAccount.id,
+      createUidl('cleanup-uidl-100'),
+    );
+    const retainedRecentRecord = await repository.findByUidl(
+      sourceAccount.id,
+      createUidl('cleanup-uidl-105'),
+    );
+
+    expect(deletedRecord).toBeNull();
+    expect(retainedOldRecord?.status).toBe('imported');
+    expect(retainedRecentRecord?.status).toBe('imported');
+  });
 });

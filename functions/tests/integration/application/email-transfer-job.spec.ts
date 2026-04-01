@@ -22,6 +22,7 @@ import type {
 } from '../../../src/domain/ports';
 import type {
   ProcessedEmailRecord,
+  ProcessedEmailCleanupResult,
   UidlClaimResult,
 } from '../../../src/domain/processed-email';
 import { createUidl, type Uidl } from '../../../src/domain/uidl';
@@ -177,6 +178,18 @@ class FakePop3MailService implements Pop3MailService {
 }
 
 class FakeProcessedEmailRepository implements ProcessedEmailRepository {
+  public cleanupError: Error | null = null;
+  public cleanupResult: ProcessedEmailCleanupResult = {
+    deletedCount: 0,
+    retainedCount: 0,
+  };
+  public readonly cleanupRuns: Array<{
+    readonly cleanupBatchSize: number;
+    readonly minimumRetainedCount: number;
+    readonly now: Date;
+    readonly retentionDays: number;
+    readonly sourceAccountId: string;
+  }> = [];
   public readonly failedMarks: Array<{
     readonly errorMessage: string;
     readonly jobId: string;
@@ -240,6 +253,22 @@ class FakeProcessedEmailRepository implements ProcessedEmailRepository {
       record,
       status: 'claimed',
     });
+  }
+
+  public cleanupImportedRecords(params: {
+    readonly cleanupBatchSize: number;
+    readonly minimumRetainedCount: number;
+    readonly now: Date;
+    readonly retentionDays: number;
+    readonly sourceAccountId: string;
+  }): Promise<ProcessedEmailCleanupResult> {
+    this.cleanupRuns.push(params);
+
+    if (this.cleanupError !== null) {
+      return Promise.reject(this.cleanupError);
+    }
+
+    return Promise.resolve(this.cleanupResult);
   }
 
   public findByUidl(
@@ -337,6 +366,11 @@ const config: AppConfig = {
   job: {
     maxMessagesPerRun: 50,
     schedule: 'every 5 minutes',
+    uidlCleanup: {
+      cleanupBatchSize: 250,
+      minimumRetainedCount: 100,
+      retentionDays: 30,
+    },
   },
   pop3: {
     host: 'pop.orange.fr',
@@ -436,6 +470,13 @@ describe('integration/application/email-transfer-job', () => {
     });
     expect(gmailMailService.importedMessages).toHaveLength(1);
     expect(processedEmailRepository.importedMarks).toHaveLength(1);
+    expect(processedEmailRepository.cleanupRuns).toHaveLength(1);
+    expect(processedEmailRepository.cleanupRuns[0]).toMatchObject({
+      cleanupBatchSize: 250,
+      minimumRetainedCount: 100,
+      retentionDays: 30,
+      sourceAccountId: sourceAccount.id,
+    });
     expect(analyticsTracker.events.map((event) => event.eventName)).toEqual([
       'job_started',
       'email_detected',
@@ -683,5 +724,34 @@ describe('integration/application/email-transfer-job', () => {
       'job_finished',
       'job_duration_recorded',
     ]);
+  });
+
+  it('does not fail the job when imported UIDL cleanup fails', async () => {
+    const logger = new FakeLogger();
+    const pop3MailService = new FakePop3MailService();
+    const processedEmailRepository = new FakeProcessedEmailRepository();
+    processedEmailRepository.cleanupError = new Error('cleanup unavailable');
+
+    const job = new EmailTransferJob(config, {
+      analyticsTracker: new FakeAnalyticsTracker(),
+      clock: buildClock(),
+      gmailMailService: new FakeGmailMailService(),
+      jobRunRepository: new FakeJobRunRepository(),
+      logger,
+      pop3MailService,
+      processedEmailRepository,
+    });
+
+    const result = await job.run();
+
+    expect(result.summary.status).toBe('completed');
+    expect(logger.warnCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'UIDL_CLEANUP_FAILED',
+          error: 'Failed to cleanup imported UIDL records.',
+        }),
+      ]),
+    );
   });
 });

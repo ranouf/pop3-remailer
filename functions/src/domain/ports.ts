@@ -6,6 +6,7 @@ import type {
   SourceAccount,
 } from './email';
 import type {
+  ProcessedEmailCleanupResult,
   ProcessedEmailMetadata,
   ProcessedEmailRecord,
   UidlClaimResult,
@@ -83,6 +84,13 @@ export interface ProcessedEmailRepository {
     readonly sourceAccount: SourceAccount;
     readonly uidl: Uidl;
   }): Promise<UidlClaimResult>;
+  cleanupImportedRecords(params: {
+    readonly cleanupBatchSize: number;
+    readonly minimumRetainedCount: number;
+    readonly now: Date;
+    readonly retentionDays: number;
+    readonly sourceAccountId: string;
+  }): Promise<ProcessedEmailCleanupResult>;
   findByUidl(
     sourceAccountId: string,
     uidl: Uidl,

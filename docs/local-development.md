@@ -29,6 +29,12 @@ Optional test-specific overrides:
 Copy-Item functions/.env.example functions/.env.test.local
 ```
 
+New cleanup-related variables available locally:
+
+- `UIDL_RETENTION_DAYS`
+- `UIDL_MINIMUM_RETAINED_COUNT`
+- `UIDL_CLEANUP_BATCH_SIZE`
+
 ## Build and test
 
 ```powershell
@@ -63,3 +69,5 @@ node functions/lib/jobs/run-email-transfer-job-local.js
 
 This runs the same application orchestration as the scheduled function, but from
 the local entry point.
+
+The local run also executes the UIDL cleanup phase after message processing.

@@ -79,6 +79,11 @@ describe('config/environment', () => {
       job: {
         maxMessagesPerRun: 100,
         schedule: 'every 5 minutes',
+        uidlCleanup: {
+          cleanupBatchSize: 250,
+          minimumRetainedCount: 100,
+          retentionDays: 30,
+        },
       },
       pop3: {
         host: 'pop.orange.fr',
@@ -180,6 +185,26 @@ describe('config/environment', () => {
     });
 
     expect(config.pop3.tls).toBe(false);
+  });
+
+  it('allows overriding UIDL cleanup settings from the environment', () => {
+    const env = createValidEnvironment();
+
+    env.UIDL_CLEANUP_BATCH_SIZE = '400';
+    env.UIDL_MINIMUM_RETAINED_COUNT = '250';
+    env.UIDL_RETENTION_DAYS = '45';
+
+    const config = readAppConfig({
+      env,
+      loadLocalEnvironmentFile: false,
+      nodeVersion: '20.19.1',
+    });
+
+    expect(config.job.uidlCleanup).toEqual({
+      cleanupBatchSize: 400,
+      minimumRetainedCount: 250,
+      retentionDays: 45,
+    });
   });
 
   it('throws when a required variable is missing', () => {

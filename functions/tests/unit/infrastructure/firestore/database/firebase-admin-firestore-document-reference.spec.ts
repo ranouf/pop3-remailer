@@ -13,7 +13,9 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-document-re
       }),
     );
     const firebaseSet = vi.fn(() => Promise.resolve());
+    const firebaseDelete = vi.fn(() => Promise.resolve());
     const firebaseDocumentReference = {
+      delete: firebaseDelete,
       get: firebaseGet,
       set: firebaseSet,
     };
@@ -34,6 +36,7 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-document-re
         merge: true,
       },
     );
+    await documentReference.delete();
 
     expect(snapshot.exists).toBe(true);
     expect(snapshot.data()).toEqual({
@@ -51,6 +54,7 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-document-re
         merge: true,
       },
     );
+    expect(firebaseDelete).toHaveBeenCalledTimes(1);
     expect(documentReference.toFirebaseDocumentReference()).toBe(
       firebaseDocumentReference,
     );

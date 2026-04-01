@@ -25,6 +25,11 @@ const config: AppConfig = {
   job: {
     maxMessagesPerRun: 50,
     schedule: 'every 5 minutes',
+    uidlCleanup: {
+      cleanupBatchSize: 250,
+      minimumRetainedCount: 100,
+      retentionDays: 30,
+    },
   },
   pop3: {
     host: 'pop.orange.fr',
@@ -111,6 +116,12 @@ describe('jobs/run-email-transfer-job.helper', () => {
       },
       processedEmailRepository: {
         claimForProcessing: vi.fn(() => Promise.resolve(claimResult)),
+        cleanupImportedRecords: vi.fn(() =>
+          Promise.resolve({
+            deletedCount: 0,
+            retainedCount: 1,
+          }),
+        ),
         findByUidl: vi.fn(() => Promise.resolve(null)),
         markFailed: vi.fn(() => Promise.resolve()),
         markImported: vi.fn(() => Promise.resolve()),

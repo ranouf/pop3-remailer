@@ -1,5 +1,5 @@
 import { createUidl } from '../../domain/uidl';
-import type { ParsedPop3ListEntry } from './models/parsed-pop3-list-entry';
+import type { ParsedPop3ListEntry } from './models';
 
 export class Pop3ResponseParser {
   public parseListEntries(

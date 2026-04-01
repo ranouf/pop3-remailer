@@ -21,6 +21,11 @@ export interface ProcessedEmailRecord {
   readonly updatedAt: Date;
 }
 
+export interface ProcessedEmailCleanupResult {
+  readonly deletedCount: number;
+  readonly retainedCount: number;
+}
+
 export const uidlClaimStatuses = [
   'claimed',
   'already_imported',

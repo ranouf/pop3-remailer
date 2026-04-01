@@ -13,7 +13,6 @@ Fields:
 - `updatedAt`
 - `importedAt`
 - `gmailMessageId`
-- `gmailThreadId`
 - `sourceAccountId`
 - `sourceProvider`
 - `status`
@@ -25,6 +24,13 @@ Statuses:
 - `processing`
 - `imported`
 - `failed`
+
+Retention behavior:
+
+- imported UIDLs can be cleaned up after the configured retention window
+- cleanup always preserves a minimum number of recent imported UIDLs per source
+  account
+- cleanup is executed by the backend job, not by client code
 
 ### `jobRuns`
 

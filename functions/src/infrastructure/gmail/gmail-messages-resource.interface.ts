@@ -1,5 +1,4 @@
-import type { GmailImportResponse } from './models/gmail-import-response';
-import type { GmailListMessagesResponse } from './models/gmail-list-messages-response';
+import type { GmailImportResponse, GmailListMessagesResponse } from './models';
 
 export interface GmailMessagesResourceInterface {
   import(request: {

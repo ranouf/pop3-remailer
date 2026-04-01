@@ -2,7 +2,7 @@ import type { JobRunStatus, JobRunSummary } from '../../domain/job-run';
 import type { ProcessedEmailRecord } from '../../domain/processed-email';
 import type { SourceProvider } from '../../domain/email';
 import { createUidl } from '../../domain/uidl';
-import type { FirestoreTimestamp } from './firestore-types';
+import type { FirestoreTimestamp } from './types';
 
 export interface StoredProcessedEmailRecord {
   readonly createdAt: Date | FirestoreTimestamp;
