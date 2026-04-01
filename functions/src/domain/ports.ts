@@ -66,7 +66,7 @@ export interface GmailMailTarget {
   ): Promise<GmailImportResult>;
 }
 
-export interface Pop3MailSource {
+export interface Pop3MailService {
   getMessage(
     sourceAccount: SourceAccount,
     messageNumber: number,
