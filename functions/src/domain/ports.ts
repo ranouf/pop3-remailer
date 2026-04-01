@@ -76,7 +76,7 @@ export interface Pop3MailSource {
   ): Promise<readonly Pop3MessageMetadata[]>;
 }
 
-export interface ProcessedEmailStore {
+export interface ProcessedEmailRepository {
   claimForProcessing(params: {
     readonly jobId: string;
     readonly metadata: ProcessedEmailMetadata;
@@ -100,7 +100,7 @@ export interface ProcessedEmailStore {
   }): Promise<void>;
 }
 
-export interface JobRunStore {
+export interface JobRunRepository {
   saveFinished(summary: JobRunSummary): Promise<void>;
   saveStarted(summary: JobRunSummary): Promise<void>;
 }
