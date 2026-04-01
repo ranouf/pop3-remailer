@@ -19,6 +19,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@amplitude/analytics-node": "^1.5.51",
     "dotenv": "^17.2.3",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.0.0",
