@@ -5,6 +5,7 @@ import type { RunEmailTransferJobOptionsInterface } from './run-email-transfer-j
 
 export class RunEmailTransferJobHelper {
   public static async run(
+    this: void,
     options: RunEmailTransferJobOptionsInterface = {},
   ) {
     const config = options.config ?? readAppConfig();

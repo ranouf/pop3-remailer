@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SourceAccount } from '../../../../src/domain/email';

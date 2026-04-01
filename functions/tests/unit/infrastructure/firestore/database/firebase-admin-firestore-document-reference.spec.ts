@@ -4,21 +4,22 @@ import { FirebaseAdminFirestoreDocumentReference } from '../../../../../src/infr
 
 describe('infrastructure/firestore/database/firebase-admin-firestore-document-reference', () => {
   it('wraps get and set operations for a firebase document reference', async () => {
-    const firebaseGet = vi.fn(async () => ({
-      data: () => ({
-        value: 'document-value',
+    const firebaseGet = vi.fn(() =>
+      Promise.resolve({
+        data: () => ({
+          value: 'document-value',
+        }),
+        exists: true,
       }),
-      exists: true,
-    }));
-    const firebaseSet = vi.fn(async () => undefined);
+    );
+    const firebaseSet = vi.fn(() => Promise.resolve());
     const firebaseDocumentReference = {
       get: firebaseGet,
       set: firebaseSet,
     };
-    const documentReference =
-      new FirebaseAdminFirestoreDocumentReference<{
-        readonly value: string;
-      }>(firebaseDocumentReference as never);
+    const documentReference = new FirebaseAdminFirestoreDocumentReference<{
+      readonly value: string;
+    }>(firebaseDocumentReference as never);
 
     const snapshot = await documentReference.get();
 

@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import { createInstance } from '@amplitude/analytics-node';
 import type * as AmplitudeCoreTypes from '@amplitude/analytics-core';
 

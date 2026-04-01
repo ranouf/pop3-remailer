@@ -2,9 +2,9 @@ import type { DocumentSnapshot } from 'firebase-admin/firestore';
 
 import type { FirestoreDocumentSnapshot } from '../firestore-types';
 
-export class FirebaseAdminFirestoreDocumentSnapshot<T>
-  implements FirestoreDocumentSnapshot<T>
-{
+export class FirebaseAdminFirestoreDocumentSnapshot<
+  T,
+> implements FirestoreDocumentSnapshot<T> {
   private readonly snapshot: DocumentSnapshot<T>;
 
   public constructor(snapshot: DocumentSnapshot<T>) {

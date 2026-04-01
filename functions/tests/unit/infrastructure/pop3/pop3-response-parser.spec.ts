@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import { describe, expect, it } from 'vitest';
 
 import { Pop3ResponseParser } from '../../../../src/infrastructure/pop3/pop3-response-parser';

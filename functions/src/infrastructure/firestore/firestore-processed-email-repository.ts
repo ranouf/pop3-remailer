@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { SourceAccount } from '../../domain/email';
 import type { ProcessedEmailRepository } from '../../domain/ports';
 import type {

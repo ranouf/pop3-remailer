@@ -15,18 +15,21 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-transaction
       }),
       exists: true,
     };
-    const firebaseTransactionGet = vi.fn(async () => firebaseSnapshot);
+    const firebaseTransactionGet = vi.fn(() =>
+      Promise.resolve(firebaseSnapshot),
+    );
     const firebaseTransactionSet = vi.fn();
     const transaction = new FirebaseAdminFirestoreTransaction({
       get: firebaseTransactionGet,
       set: firebaseTransactionSet,
     } as never);
     const firebaseDocumentReference = {};
+    const firebaseWrappedGet = vi.fn(() => Promise.resolve(firebaseSnapshot));
     const documentReference = new FirebaseAdminFirestoreDocumentReference<{
       readonly value: string;
     }>({
-      get: vi.fn(async () => firebaseSnapshot),
-      set: vi.fn(async () => undefined),
+      get: firebaseWrappedGet,
+      set: vi.fn(() => Promise.resolve()),
     } as never);
     Object.assign(documentReference, {
       toFirebaseDocumentReference: () => firebaseDocumentReference,
@@ -34,12 +37,9 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-transaction
 
     const snapshot = await transaction.get(documentReference);
 
-    const returnedTransactionWithoutMerge = transaction.set(
-      documentReference,
-      {
-        value: 'without-merge',
-      },
-    );
+    const returnedTransactionWithoutMerge = transaction.set(documentReference, {
+      value: 'without-merge',
+    });
     const returnedTransactionWithMerge = transaction.set(
       documentReference,
       {
@@ -54,7 +54,9 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-transaction
     expect(snapshot.data()).toEqual({
       value: 'transaction-value',
     });
-    expect(firebaseTransactionGet).toHaveBeenCalledWith(firebaseDocumentReference);
+    expect(firebaseTransactionGet).toHaveBeenCalledWith(
+      firebaseDocumentReference,
+    );
     expect(firebaseTransactionSet).toHaveBeenNthCalledWith(
       1,
       firebaseDocumentReference,
@@ -89,11 +91,12 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-transaction
       }),
       exists: true,
     };
+    const documentReferenceGet = vi.fn(() => Promise.resolve(snapshot));
     const documentReference: FirestoreDocumentReference<{
       readonly value: string;
     }> = {
-      get: vi.fn(async () => snapshot),
-      set: vi.fn(async () => undefined),
+      get: documentReferenceGet,
+      set: vi.fn(() => Promise.resolve()),
     };
 
     const returnedSnapshot = await transaction.get(documentReference);
@@ -108,7 +111,7 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-transaction
     );
 
     expect(returnedSnapshot).toBe(snapshot);
-    expect(documentReference.get).toHaveBeenCalledTimes(1);
+    expect(documentReferenceGet).toHaveBeenCalledTimes(1);
     expect(firebaseTransactionGet).not.toHaveBeenCalled();
     expect(firebaseTransactionSet).not.toHaveBeenCalled();
     expect(returnedTransaction).toBe(transaction);

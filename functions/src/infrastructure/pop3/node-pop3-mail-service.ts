@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { AppConfig } from '../../config/environment';
 import type {
   Pop3MessageMetadata,

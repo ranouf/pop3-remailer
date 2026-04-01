@@ -16,9 +16,7 @@ import { NodePop3MailService } from '../infrastructure/pop3/node-pop3-mail-servi
 import { Pop3ResponseParser } from '../infrastructure/pop3/pop3-response-parser';
 import type { RunEmailTransferJobDependenciesFactoryInterface } from './run-email-transfer-job-dependencies-factory.interface';
 
-export class DefaultRunEmailTransferJobDependenciesFactory
-  implements RunEmailTransferJobDependenciesFactoryInterface
-{
+export class DefaultRunEmailTransferJobDependenciesFactory implements RunEmailTransferJobDependenciesFactoryInterface {
   public create(config: AppConfig): EmailTransferJobDependencies {
     const logger = new StructuredConsoleLogger();
     const firebaseApp =

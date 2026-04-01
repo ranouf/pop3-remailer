@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { OAuth2Client } from 'google-auth-library';
 import { google, type gmail_v1 } from 'googleapis';
 

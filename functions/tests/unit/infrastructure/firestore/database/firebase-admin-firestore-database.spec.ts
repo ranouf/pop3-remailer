@@ -10,11 +10,14 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-database', 
       doc: vi.fn(),
     };
     const firebaseRunTransaction = vi.fn(
-      async (
-        updateFunction: (transaction: { readonly name: string }) => Promise<string>,
-      ) => updateFunction({
-        name: 'firebase-transaction',
-      }),
+      (
+        updateFunction: (transaction: {
+          readonly name: string;
+        }) => Promise<string>,
+      ) =>
+        updateFunction({
+          name: 'firebase-transaction',
+        }),
     );
     const database = new FirebaseAdminFirestoreDatabase({
       collection: vi.fn(() => firebaseCollectionReference),
@@ -24,13 +27,15 @@ describe('infrastructure/firestore/database/firebase-admin-firestore-database', 
     const collection = database.collection<{
       readonly value: string;
     }>('processedEmails');
-    const result = await database.runTransaction(async (transaction) => {
+    const result = await database.runTransaction((transaction) => {
       expect(transaction).toBeInstanceOf(FirebaseAdminFirestoreTransaction);
 
-      return 'transaction-result';
+      return Promise.resolve('transaction-result');
     });
 
-    expect(collection).toBeInstanceOf(FirebaseAdminFirestoreCollectionReference);
+    expect(collection).toBeInstanceOf(
+      FirebaseAdminFirestoreCollectionReference,
+    );
     expect(result).toBe('transaction-result');
   });
 });

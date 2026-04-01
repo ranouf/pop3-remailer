@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { JobRunSummary } from '../../domain/job-run';
 import type { JobRunRepository } from '../../domain/ports';
 import { jobRunsCollectionName } from './firestore-keys';

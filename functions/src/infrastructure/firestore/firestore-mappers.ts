@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { JobRunStatus, JobRunSummary } from '../../domain/job-run';
 import type { ProcessedEmailRecord } from '../../domain/processed-email';
 import type { SourceProvider } from '../../domain/email';

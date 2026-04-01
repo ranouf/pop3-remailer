@@ -45,16 +45,6 @@ module.exports = defineConfig([
           fixStyle: 'inline-type-imports',
         },
       ],
-      'sort-imports': [
-        'error',
-        {
-          ignoreCase: true,
-          ignoreDeclarationSort: false,
-          ignoreMemberSort: true,
-          memberSyntaxSortOrder: ['none', 'single', 'multiple', 'all'],
-          allowSeparatedGroups: false,
-        },
-      ],
       'no-duplicate-imports': 'error',
       'linebreak-style': ['error', 'unix'],
     },

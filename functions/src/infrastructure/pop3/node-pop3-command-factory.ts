@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import Pop3Command from 'node-pop3';
 
 import type { AppConfig } from '../../config/environment';

@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { RawEmailMessage } from '../../../../src/domain/email';
 import { createUidl } from '../../../../src/domain/uidl';
 import type { GmailApiClientFactoryInterface } from '../../../../src/infrastructure/gmail/gmail-api-client-factory.interface';

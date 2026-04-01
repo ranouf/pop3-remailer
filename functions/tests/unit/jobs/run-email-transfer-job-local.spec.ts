@@ -10,7 +10,8 @@ describe('jobs/run-email-transfer-job-local', () => {
       },
     }));
 
-    const module = await import('../../../src/jobs/run-email-transfer-job-local');
+    const module =
+      await import('../../../src/jobs/run-email-transfer-job-local');
 
     await module.runEmailTransferJobLocally();
 

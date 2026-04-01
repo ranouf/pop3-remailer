@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { AppConfig } from '../../config/environment';
 import { AmplitudeNodeClient } from './amplitude-node-client';
 import type {

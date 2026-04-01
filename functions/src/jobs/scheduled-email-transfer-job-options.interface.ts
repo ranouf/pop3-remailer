@@ -1,4 +1,4 @@
-import { RunEmailTransferJobHelper } from './run-email-transfer-job.helper';
+import type { RunEmailTransferJobHelper } from './run-email-transfer-job.helper';
 
 export interface ScheduledEmailTransferJobOptionsInterface {
   readonly runJob?: typeof RunEmailTransferJobHelper.run;

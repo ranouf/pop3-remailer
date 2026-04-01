@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import { describe, expect, it } from 'vitest';
 
 import type { AppConfig } from '../../../src/config/environment';

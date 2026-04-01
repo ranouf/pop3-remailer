@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { AmplitudeReturn, Result } from '@amplitude/analytics-core';
 
 import type { AmplitudeNodeTrackEventModel } from './models/amplitude-node-track-event-model';

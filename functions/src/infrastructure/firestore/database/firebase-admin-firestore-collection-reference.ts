@@ -6,9 +6,9 @@ import type {
 } from '../firestore-types';
 import { FirebaseAdminFirestoreDocumentReference } from './firebase-admin-firestore-document-reference';
 
-export class FirebaseAdminFirestoreCollectionReference<T>
-  implements FirestoreCollectionReference<T>
-{
+export class FirebaseAdminFirestoreCollectionReference<
+  T,
+> implements FirestoreCollectionReference<T> {
   private readonly collectionReference: CollectionReference<T>;
 
   public constructor(collectionReference: CollectionReference<T>) {

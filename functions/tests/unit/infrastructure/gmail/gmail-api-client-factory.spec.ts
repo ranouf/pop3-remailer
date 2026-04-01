@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { gmail_v1 } from 'googleapis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

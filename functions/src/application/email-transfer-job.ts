@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { EmailTransferJobDependencies } from './email-transfer-job-dependencies.interface';
 import type { EmailTransferJobResult } from './models/email-transfer-job-result';
 import type { AppConfig } from '../config/environment';

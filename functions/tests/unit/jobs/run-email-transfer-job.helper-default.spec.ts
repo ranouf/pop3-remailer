@@ -89,15 +89,17 @@ describe('jobs/run-email-transfer-job.helper default behavior', () => {
       },
     }));
 
-    const { RunEmailTransferJobHelper } = await import(
-      '../../../src/jobs/run-email-transfer-job.helper'
-    );
+    const { RunEmailTransferJobHelper } =
+      await import('../../../src/jobs/run-email-transfer-job.helper');
 
     const result = await RunEmailTransferJobHelper.run();
 
     expect(readAppConfig).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith(config);
-    expect(emailTransferJobConstructor).toHaveBeenCalledWith(config, dependencies);
+    expect(emailTransferJobConstructor).toHaveBeenCalledWith(
+      config,
+      dependencies,
+    );
     expect(run).toHaveBeenCalledTimes(1);
     expect(result.summary.status).toBe('completed');
   });

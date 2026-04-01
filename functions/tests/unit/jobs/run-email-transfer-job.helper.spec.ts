@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { UidlClaimResult } from '../../../src/domain/processed-email';
 import type { AppConfig } from '../../../src/config/environment';
 import type { EmailTransferJobDependencies } from '../../../src/application/email-transfer-job-dependencies.interface';
 import { RunEmailTransferJobHelper } from '../../../src/jobs/run-email-transfer-job.helper';
@@ -48,6 +49,20 @@ const config: AppConfig = {
 
 describe('jobs/run-email-transfer-job.helper', () => {
   it('runs the email transfer job with injected dependencies', async () => {
+    const claimResult: UidlClaimResult = {
+      record: {
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        metadata: {
+          claimJobId: 'job-1',
+        },
+        sourceAccountId: config.sourceAccount.id,
+        sourceProvider: config.sourceAccount.provider,
+        status: 'processing',
+        uidl: 'uidl-job-1' as never,
+        updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+      status: 'claimed',
+    };
     const analyticsTracker = {
       flush: vi.fn(() => Promise.resolve()),
       track: vi.fn(() => Promise.resolve()),
@@ -55,7 +70,9 @@ describe('jobs/run-email-transfer-job.helper', () => {
     const dependencies: EmailTransferJobDependencies = {
       analyticsTracker,
       gmailMailService: {
-        findImportedMessageByRfc822MessageId: vi.fn(() => Promise.resolve(null)),
+        findImportedMessageByRfc822MessageId: vi.fn(() =>
+          Promise.resolve(null),
+        ),
         importMessage: vi.fn(() =>
           Promise.resolve({
             gmailMessageId: 'gmail-message-id',
@@ -93,22 +110,7 @@ describe('jobs/run-email-transfer-job.helper', () => {
         ),
       },
       processedEmailRepository: {
-        claimForProcessing: vi.fn(() =>
-          Promise.resolve({
-            record: {
-              createdAt: new Date('2026-04-01T00:00:00.000Z'),
-              metadata: {
-                claimJobId: 'job-1',
-              },
-              sourceAccountId: config.sourceAccount.id,
-              sourceProvider: config.sourceAccount.provider,
-              status: 'processing',
-              uidl: 'uidl-job-1' as never,
-              updatedAt: new Date('2026-04-01T00:00:00.000Z'),
-            },
-            status: 'claimed',
-          }),
-        ),
+        claimForProcessing: vi.fn(() => Promise.resolve(claimResult)),
         findByUidl: vi.fn(() => Promise.resolve(null)),
         markFailed: vi.fn(() => Promise.resolve()),
         markImported: vi.fn(() => Promise.resolve()),

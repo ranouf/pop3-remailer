@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NodePop3CommandFactory } from '../../../../src/infrastructure/pop3/node-pop3-command-factory';

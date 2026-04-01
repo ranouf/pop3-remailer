@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { AmplitudeReturn, Result } from '@amplitude/analytics-core';
 
 import { AmplitudeTrackerService } from '../../../../src/infrastructure/analytics/amplitude-tracker-service';

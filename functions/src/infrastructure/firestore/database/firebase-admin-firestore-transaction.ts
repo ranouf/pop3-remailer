@@ -1,4 +1,8 @@
-import type { Transaction, WithFieldValue } from 'firebase-admin/firestore';
+import type {
+  DocumentReference,
+  Transaction,
+  WithFieldValue,
+} from 'firebase-admin/firestore';
 
 import type {
   FirestoreDocumentReference,
@@ -25,7 +29,9 @@ export class FirebaseAdminFirestoreTransaction implements FirestoreTransaction {
     }
 
     return new FirebaseAdminFirestoreDocumentSnapshot(
-      await this.transaction.get(documentReference.toFirebaseDocumentReference()),
+      await this.transaction.get(
+        documentReference.toFirebaseDocumentReference(),
+      ),
     );
   }
 
@@ -40,21 +46,20 @@ export class FirebaseAdminFirestoreTransaction implements FirestoreTransaction {
       return this;
     }
 
+    const firebaseDocumentReference =
+      documentReference.toFirebaseDocumentReference() as DocumentReference<T>;
+
     if (options?.merge === undefined) {
       this.transaction.set(
-        documentReference.toFirebaseDocumentReference(),
+        firebaseDocumentReference,
         data as WithFieldValue<T>,
       );
       return this;
     }
 
-    this.transaction.set(
-      documentReference.toFirebaseDocumentReference(),
-      data as WithFieldValue<T>,
-      {
-        merge: options.merge,
-      },
-    );
+    this.transaction.set(firebaseDocumentReference, data as WithFieldValue<T>, {
+      merge: options.merge,
+    });
 
     return this;
   }

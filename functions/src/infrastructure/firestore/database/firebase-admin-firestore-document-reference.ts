@@ -9,9 +9,9 @@ import type {
 } from '../firestore-types';
 import { FirebaseAdminFirestoreDocumentSnapshot } from './firebase-admin-firestore-document-snapshot';
 
-export class FirebaseAdminFirestoreDocumentReference<T>
-  implements FirestoreDocumentReference<T>
-{
+export class FirebaseAdminFirestoreDocumentReference<
+  T,
+> implements FirestoreDocumentReference<T> {
   private readonly documentReference: DocumentReference<T>;
 
   public constructor(documentReference: DocumentReference<T>) {

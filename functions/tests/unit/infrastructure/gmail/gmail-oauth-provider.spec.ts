@@ -1,6 +1,4 @@
-import {
-  GoogleGmailOAuthProvider,
-} from '../../../../src/infrastructure/gmail/gmail-oauth-provider';
+import { GoogleGmailOAuthProvider } from '../../../../src/infrastructure/gmail/gmail-oauth-provider';
 import { GmailOAuthSettings } from '../../../../src/infrastructure/gmail/settings/gmail-oauth.settings';
 
 describe('infrastructure/gmail/gmail-oauth-provider', () => {
