@@ -1,4 +1,4 @@
-import { transferEventNames } from '../../../src';
+import { transferEventNames } from '../../../src/domain/ports';
 
 describe('domain/ports', () => {
   it('defines all required tracking event names', () => {
