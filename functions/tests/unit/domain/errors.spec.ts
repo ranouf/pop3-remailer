@@ -65,4 +65,16 @@ describe('domain/errors', () => {
     expect(wrappedError.retriable).toBe(true);
     expect(wrappedError.cause).toBe('boom');
   });
+
+  it('omits optional fields when the fallback has no details and no cause', () => {
+    const wrappedError = toTransferJobError(undefined, {
+      category: 'technical',
+      code: 'POP3_CONNECTION_FAILED',
+      message: 'POP3 connection failed.',
+      retriable: true,
+    });
+
+    expect(wrappedError.details).toBeUndefined();
+    expect(wrappedError.cause).toBeUndefined();
+  });
 });
