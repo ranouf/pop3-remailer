@@ -1,0 +1,111 @@
+name: Firebase Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: firebase-deploy-main
+  cancel-in-progress: true
+
+env:
+  CI: true
+  NODE_VERSION: '20'
+  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.FIREBASE_PROJECT_ID }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create Firebase dotenv file for deployment
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
+          ENVIRONMENT_NAME: ${{ secrets.ENVIRONMENT_NAME }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_MAX_IMPORT_RETRIES: ${{ secrets.GMAIL_MAX_IMPORT_RETRIES }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_TIMEOUT_MS: ${{ secrets.GMAIL_TIMEOUT_MS }}
+          GMAIL_USER_EMAIL: ${{ secrets.GMAIL_USER_EMAIL }}
+          POP3_HOST: ${{ secrets.POP3_HOST }}
+          POP3_MAX_MESSAGES_PER_RUN: ${{ secrets.POP3_MAX_MESSAGES_PER_RUN }}
+          POP3_PASSWORD: ${{ secrets.POP3_PASSWORD }}
+          POP3_PORT: ${{ secrets.POP3_PORT }}
+          POP3_TIMEOUT_MS: ${{ secrets.POP3_TIMEOUT_MS }}
+          POP3_TLS: ${{ secrets.POP3_TLS }}
+          POP3_USERNAME: ${{ secrets.POP3_USERNAME }}
+          SOURCE_EMAIL_ADDRESS: ${{ secrets.SOURCE_EMAIL_ADDRESS }}
+          SOURCE_PROVIDER: ${{ secrets.SOURCE_PROVIDER }}
+        run: |
+          cat > "functions/.env.${FIREBASE_PROJECT_ID}" <<EOF
+          ENVIRONMENT_NAME=${ENVIRONMENT_NAME}
+          SOURCE_PROVIDER=${SOURCE_PROVIDER}
+          SOURCE_EMAIL_ADDRESS=${SOURCE_EMAIL_ADDRESS}
+          POP3_HOST=${POP3_HOST}
+          POP3_PORT=${POP3_PORT}
+          POP3_USERNAME=${POP3_USERNAME}
+          POP3_PASSWORD=${POP3_PASSWORD}
+          POP3_TLS=${POP3_TLS}
+          POP3_TIMEOUT_MS=${POP3_TIMEOUT_MS}
+          POP3_MAX_MESSAGES_PER_RUN=${POP3_MAX_MESSAGES_PER_RUN}
+          GMAIL_CLIENT_ID=${GMAIL_CLIENT_ID}
+          GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
+          GMAIL_REFRESH_TOKEN=${GMAIL_REFRESH_TOKEN}
+          GMAIL_USER_EMAIL=${GMAIL_USER_EMAIL}
+          GMAIL_TIMEOUT_MS=${GMAIL_TIMEOUT_MS}
+          GMAIL_MAX_IMPORT_RETRIES=${GMAIL_MAX_IMPORT_RETRIES}
+          AMPLITUDE_API_KEY=${AMPLITUDE_API_KEY}
+          EOF
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy Firebase Functions and Firestore rules
+        run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only functions,firestore --non-interactive
+
+  release:
+    name: release
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: OVERVIEW.md
+          name: Production deployment ${{ github.run_number }}
+          tag_name: deploy-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
