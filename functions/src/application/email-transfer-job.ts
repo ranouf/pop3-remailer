@@ -221,6 +221,28 @@ export class EmailTransferJob {
     };
   }
 
+  private buildTransferErrorLogContext(
+    transferError: TransferJobError,
+  ): Readonly<Record<string, unknown>> {
+    const context: Record<string, unknown> = {
+      code: transferError.code,
+      error: transferError.message,
+      errorCategory: transferError.category,
+      retriable: transferError.retriable,
+    };
+
+    if (transferError.details !== undefined) {
+      context.errorDetails = transferError.details;
+    }
+
+    if (transferError.cause instanceof Error) {
+      context.errorCauseMessage = transferError.cause.message;
+      context.errorCauseName = transferError.cause.name;
+    }
+
+    return context;
+  }
+
   private createInitialCounts(): JobRunCounts {
     return {
       detectedCount: 0,
@@ -370,8 +392,7 @@ export class EmailTransferJob {
 
       this.logger.warn('Email processing failed.', {
         ...this.buildEmailProperties(context, message),
-        code: transferError.code,
-        error: transferError.message,
+        ...this.buildTransferErrorLogContext(transferError),
       });
 
       if (transferError.code === 'GMAIL_IMPORT_FAILED') {
