@@ -105,9 +105,13 @@ jobs:
           fi
 
       - name: Configure Firebase Functions artifact cleanup policy
+        env:
+          NODE_OPTIONS: --no-deprecation
         run: npx firebase-tools functions:artifacts:setpolicy --project "${FIREBASE_PROJECT_ID}" --location europe-west1 --days 1 --force
 
       - name: Deploy Firebase Functions, Firestore rules, and indexes
+        env:
+          NODE_OPTIONS: --no-deprecation
         run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only functions,firestore:rules,firestore:indexes --non-interactive --force
 
   release:
