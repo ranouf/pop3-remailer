@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/20260331_setup
   workflow_dispatch:
 
 permissions:
@@ -17,6 +16,7 @@ concurrency:
 
 env:
   CI: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_VERSION: '22'
   FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
 
@@ -26,10 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -105,9 +105,13 @@ jobs:
           fi
 
       - name: Configure Firebase Functions artifact cleanup policy
+        env:
+          NODE_OPTIONS: --no-deprecation
         run: npx firebase-tools functions:artifacts:setpolicy --project "${FIREBASE_PROJECT_ID}" --location europe-west1 --days 1 --force
 
       - name: Deploy Firebase Functions, Firestore rules, and indexes
+        env:
+          NODE_OPTIONS: --no-deprecation
         run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only functions,firestore:rules,firestore:indexes --non-interactive --force
 
   release:
@@ -118,10 +122,10 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.5.3
         with:
           body_path: OVERVIEW.md
           name: Production deployment ${{ github.run_number }}

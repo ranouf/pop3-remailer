@@ -498,7 +498,12 @@ describe('integration/application/email-transfer-job', () => {
     const gmailMailService = new FakeGmailMailService();
     gmailMailService.importError = new TransferJobError('gmail import failed', {
       category: 'technical',
+      cause: new Error('Request had insufficient authentication scopes.'),
       code: 'GMAIL_IMPORT_FAILED',
+      details: {
+        causeResponseStatus: 403,
+        messageId: '<message-3@example.com>',
+      },
       retriable: true,
     });
     const jobRunRepository = new FakeJobRunRepository();
@@ -506,13 +511,14 @@ describe('integration/application/email-transfer-job', () => {
     pop3MailService.listedMessages.push(buildMetadata(3, 'uidl-3'));
     pop3MailService.rawMessages.set(3, buildRawMessage(3, 'uidl-3'));
     const processedEmailRepository = new FakeProcessedEmailRepository();
+    const logger = new FakeLogger();
 
     const job = new EmailTransferJob(config, {
       analyticsTracker,
       clock: buildClock(),
       gmailMailService,
       jobRunRepository,
-      logger: new FakeLogger(),
+      logger,
       pop3MailService,
       processedEmailRepository,
     });
@@ -536,6 +542,29 @@ describe('integration/application/email-transfer-job', () => {
       'job_finished',
       'job_duration_recorded',
     ]);
+    const warnContext = logger.warnCalls.at(-1);
+
+    expect(warnContext).toBeDefined();
+
+    if (warnContext === undefined) {
+      return;
+    }
+
+    expect(warnContext.code).toBe('GMAIL_IMPORT_FAILED');
+    expect(warnContext.error).toBe('gmail import failed');
+    expect(warnContext.errorCategory).toBe('technical');
+    expect(warnContext.errorCauseMessage).toBe(
+      'Request had insufficient authentication scopes.',
+    );
+    expect(warnContext.errorCauseName).toBe('Error');
+    expect(warnContext.retriable).toBe(true);
+
+    const errorDetails = warnContext.errorDetails;
+
+    expect(errorDetails).toMatchObject({
+      causeResponseStatus: 403,
+      messageId: '<message-3@example.com>',
+    });
   });
 
   it('reconciles Gmail import success when Firestore markImported fails after the import', async () => {
