@@ -1,5 +1,5 @@
-export const firebaseFunctionsRuntime = 'nodejs20' as const;
-export const supportedNodeMajorVersion = 20;
+export const firebaseFunctionsRuntime = 'nodejs22' as const;
+export const supportedNodeMajorVersion = 22;
 export const scheduledTransferCron = 'every 5 minutes';
 
 export const environmentFileNames = ['.env.local', '.env.test.local'] as const;

@@ -2,10 +2,10 @@
 
 ## Runtime
 
-Use Node.js `20.19.1` everywhere locally.
+Use Node.js `22` everywhere locally.
 
 ```powershell
-nvm use 20.19.1
+nvm use 22
 node -v
 ```
 

@@ -5,9 +5,9 @@ describe('project foundation', () => {
     expect(foundationMarker).toBe('project-foundation');
   });
 
-  it('runs under Node.js 20 during validated executions', () => {
+  it('runs under Node.js 22 during validated executions', () => {
     const [major] = process.versions.node.split('.');
 
-    expect(Number(major)).toBe(20);
+    expect(Number(major)).toBe(22);
   });
 });

@@ -5,7 +5,7 @@
   "description": "POP3S to Gmail importer powered by Firebase Functions v2",
   "packageManager": "npm@10.8.2",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "workspaces": [
     "functions"

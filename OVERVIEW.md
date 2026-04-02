@@ -8,7 +8,7 @@ importer built on Firebase Functions v2.
 ## Highlights
 
 - Firebase Functions v2 scheduled every 5 minutes
-- Strict Node.js 20 alignment for local development, CI, and runtime
+- Strict Node.js 22 alignment for local development, CI, and runtime
 - POP3S ingestion with UIDL-based deduplication
 - Gmail import through OAuth2 and the Gmail API
 - Firestore-backed idempotency and job audit trail

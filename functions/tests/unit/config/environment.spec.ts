@@ -39,8 +39,8 @@ const createValidEnvironment = (): Record<string, string> => ({
 
 describe('config/runtime', () => {
   it('exposes runtime constants', () => {
-    expect(firebaseFunctionsRuntime).toBe('nodejs20');
-    expect(supportedNodeMajorVersion).toBe(20);
+    expect(firebaseFunctionsRuntime).toBe('nodejs22');
+    expect(supportedNodeMajorVersion).toBe(22);
     expect(scheduledTransferCron).toBe('every 5 minutes');
   });
 
@@ -56,7 +56,7 @@ describe('config/environment', () => {
     const config = readAppConfig({
       env: createValidEnvironment(),
       loadLocalEnvironmentFile: false,
-      nodeVersion: '20.19.1',
+      nodeVersion: '22.0.0',
     });
 
     expect(config).toEqual({
@@ -65,7 +65,7 @@ describe('config/environment', () => {
         environmentName: 'local',
       },
       firebase: {
-        functionsRuntime: 'nodejs20',
+        functionsRuntime: 'nodejs22',
         projectId: 'demo-pop3-remailer',
       },
       gmail: {
@@ -95,8 +95,8 @@ describe('config/environment', () => {
       },
       runtime: {
         environmentName: 'local',
-        nodeMajorVersion: 20,
-        nodeVersion: '20.19.1',
+        nodeMajorVersion: 22,
+        nodeVersion: '22.0.0',
       },
       sourceAccount: {
         address: 'source@orange.fr',
@@ -141,7 +141,7 @@ describe('config/environment', () => {
           NODE_ENV: 'test',
           POP3_PASSWORD: 'env-password',
         },
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       });
 
       expect(config.firebase.projectId).toBe('loaded-from-file');
@@ -167,7 +167,7 @@ describe('config/environment', () => {
     const config = readAppConfig({
       env,
       loadLocalEnvironmentFile: false,
-      nodeVersion: '20.19.1',
+      nodeVersion: '22.0.0',
     });
 
     expect(config.firebase.projectId).toBe('fallback-project-id');
@@ -181,7 +181,7 @@ describe('config/environment', () => {
     const config = readAppConfig({
       env,
       loadLocalEnvironmentFile: false,
-      nodeVersion: '20.19.1',
+      nodeVersion: '22.0.0',
     });
 
     expect(config.pop3.tls).toBe(false);
@@ -197,7 +197,7 @@ describe('config/environment', () => {
     const config = readAppConfig({
       env,
       loadLocalEnvironmentFile: false,
-      nodeVersion: '20.19.1',
+      nodeVersion: '22.0.0',
     });
 
     expect(config.job.uidlCleanup).toEqual({
@@ -216,7 +216,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -230,7 +230,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -244,7 +244,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -258,7 +258,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -272,7 +272,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -286,7 +286,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -300,7 +300,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -314,7 +314,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -328,7 +328,7 @@ describe('config/environment', () => {
       readAppConfig({
         env,
         loadLocalEnvironmentFile: false,
-        nodeVersion: '20.19.1',
+        nodeVersion: '22.0.0',
       }),
     ).toThrowError(TransferJobError);
   });
@@ -340,7 +340,7 @@ describe('config/environment', () => {
   });
 
   it('accepts the supported Node.js runtime version', () => {
-    expect(() => assertSupportedNodeRuntime('20.12.2')).not.toThrow();
+    expect(() => assertSupportedNodeRuntime('22.12.2')).not.toThrow();
   });
 
   it('loads the expected dotenv file into a mutable environment object', () => {

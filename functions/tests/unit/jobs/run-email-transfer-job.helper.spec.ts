@@ -11,7 +11,7 @@ const config: AppConfig = {
     environmentName: 'test',
   },
   firebase: {
-    functionsRuntime: 'nodejs20',
+    functionsRuntime: 'nodejs22',
     projectId: 'pop3-remailer-test',
   },
   gmail: {
@@ -41,8 +41,8 @@ const config: AppConfig = {
   },
   runtime: {
     environmentName: 'test',
-    nodeMajorVersion: 20,
-    nodeVersion: '20.19.1',
+    nodeMajorVersion: 22,
+    nodeVersion: '22.0.0',
   },
   sourceAccount: {
     address: 'source@orange.fr',

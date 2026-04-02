@@ -6,7 +6,7 @@
 2. Upgrade the project to the Blaze plan.
 3. Enable Cloud Firestore in Native mode.
 4. Enable Cloud Scheduler for scheduled functions.
-5. Confirm the project is deployed with Functions v2 and runtime `nodejs20`.
+5. Confirm the project is deployed with Functions v2 and runtime `nodejs22`.
 
 ## Local CLI setup
 
@@ -27,7 +27,7 @@ storing a local alias.
 
 ## Notes
 
-- The project intentionally targets `nodejs20`.
+- The project intentionally targets `nodejs22`.
 - The scheduler job is created automatically when the scheduled function is
   deployed.
 - Do not manually edit or delete the generated scheduler job from the Google

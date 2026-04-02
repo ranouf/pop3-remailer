@@ -12,7 +12,7 @@ in Amplitude.
 
 - Keep Orange or Wanadoo emails synchronized into Gmail without sending them.
 - Prevent duplicates with a UIDL-first idempotency strategy.
-- Run the same Node.js 20 runtime locally, in CI, and on Firebase.
+- Run the same Node.js 22 runtime locally, in CI, and on Firebase.
 - Keep the codebase layered, typed, documented, and ready for maintenance.
 
 ## Architecture
@@ -26,7 +26,7 @@ in Amplitude.
 
 ## Prerequisites
 
-- Node.js `20.19.1`
+- Node.js `22`
 - npm `10.x`
 - Firebase CLI
 - A Firebase project on the Blaze plan
@@ -37,7 +37,7 @@ in Amplitude.
 ## Installation
 
 ```powershell
-nvm use 20.19.1
+nvm use 22
 npm install
 Copy-Item functions/.env.example functions/.env.local
 ```

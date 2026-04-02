@@ -36,7 +36,7 @@ Trigger:
 Steps:
 
 1. authenticate to Google Cloud using Workload Identity Federation
-2. install dependencies in Node 20
+2. install dependencies in Node 22
 3. generate a temporary `functions/.env.<project-id>` file from GitHub Secrets
 4. build the project
 5. deploy Functions and Firestore configuration with Firebase CLI

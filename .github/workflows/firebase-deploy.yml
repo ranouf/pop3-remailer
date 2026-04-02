@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - feature/20260331_setup
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,7 +17,7 @@ concurrency:
 
 env:
   CI: true
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
 
 jobs:
@@ -65,6 +67,9 @@ jobs:
           POP3_USERNAME: ${{ secrets.POP3_USERNAME }}
           SOURCE_EMAIL_ADDRESS: ${{ secrets.SOURCE_EMAIL_ADDRESS }}
           SOURCE_PROVIDER: ${{ secrets.SOURCE_PROVIDER }}
+          UIDL_CLEANUP_BATCH_SIZE: ${{ secrets.UIDL_CLEANUP_BATCH_SIZE }}
+          UIDL_MINIMUM_RETAINED_COUNT: ${{ secrets.UIDL_MINIMUM_RETAINED_COUNT }}
+          UIDL_RETENTION_DAYS: ${{ secrets.UIDL_RETENTION_DAYS }}
         run: |
           cat > "functions/.env.${FIREBASE_PROJECT_ID}" <<EOF
           ENVIRONMENT_NAME=${ENVIRONMENT_NAME}
@@ -77,6 +82,9 @@ jobs:
           POP3_TLS=${POP3_TLS}
           POP3_TIMEOUT_MS=${POP3_TIMEOUT_MS}
           POP3_MAX_MESSAGES_PER_RUN=${POP3_MAX_MESSAGES_PER_RUN}
+          UIDL_RETENTION_DAYS=${UIDL_RETENTION_DAYS}
+          UIDL_MINIMUM_RETAINED_COUNT=${UIDL_MINIMUM_RETAINED_COUNT}
+          UIDL_CLEANUP_BATCH_SIZE=${UIDL_CLEANUP_BATCH_SIZE}
           GMAIL_CLIENT_ID=${GMAIL_CLIENT_ID}
           GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
           GMAIL_REFRESH_TOKEN=${GMAIL_REFRESH_TOKEN}
@@ -89,8 +97,18 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Deploy Firebase Functions and Firestore rules
-        run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only functions,firestore --non-interactive
+      - name: Validate Firestore rules are not in test mode
+        run: |
+          if grep -q "request.time < timestamp.date" firestore.rules; then
+            echo "Firestore rules still look like test mode rules."
+            exit 1
+          fi
+
+      - name: Configure Firebase Functions artifact cleanup policy
+        run: npx firebase-tools functions:artifacts:setpolicy --project "${FIREBASE_PROJECT_ID}" --location europe-west1 --days 1 --force
+
+      - name: Deploy Firebase Functions, Firestore rules, and indexes
+        run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only functions,firestore:rules,firestore:indexes --non-interactive --force
 
   release:
     name: release

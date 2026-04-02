@@ -74,7 +74,10 @@ export class AmplitudeTrackerService implements AnalyticsTracker {
     readonly deviceId: string;
     readonly userId?: string;
   } {
-    const sourceAccountId = this.readStringProperty(properties, 'sourceAccountId');
+    const sourceAccountId = this.readStringProperty(
+      properties,
+      'sourceAccountId',
+    );
 
     return {
       deviceId: `${AmplitudeTrackerService.backendDeviceIdPrefix}:${this.analyticsConfig.environmentName}`,
