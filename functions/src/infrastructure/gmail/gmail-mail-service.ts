@@ -1,6 +1,6 @@
 import type { AppConfig } from '../../config/environment';
 import type { RawEmailMessage } from '../../domain/email';
-import { toTransferJobError } from '../../domain/errors';
+import { TransferJobError, toTransferJobError } from '../../domain/errors';
 import type {
   GmailImportedMessageLookup,
   GmailImportResult,
@@ -67,7 +67,7 @@ export class GoogleGmailMailService implements GmailMailService {
 
       return gmailMessageId === null ? null : { gmailMessageId };
     } catch (error) {
-      throw toTransferJobError(error, {
+      throw this.toDiagnosticTransferError(error, {
         category: 'technical',
         code: 'GMAIL_LOOKUP_FAILED',
         details: {
@@ -129,7 +129,7 @@ export class GoogleGmailMailService implements GmailMailService {
             }),
       };
     } catch (error) {
-      throw toTransferJobError(error, {
+      throw this.toDiagnosticTransferError(error, {
         category: 'technical',
         code: 'GMAIL_IMPORT_FAILED',
         details: {
@@ -143,6 +143,111 @@ export class GoogleGmailMailService implements GmailMailService {
         retriable: true,
       });
     }
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (value === null || typeof value !== 'object') {
+      return null;
+    }
+
+    return value as Record<string, unknown>;
+  }
+
+  private buildDiagnosticDetails(
+    error: unknown,
+  ): Readonly<Record<string, unknown>> {
+    const details: Record<string, unknown> = {};
+
+    if (typeof error === 'string') {
+      details.causeMessage = error;
+      return details;
+    }
+
+    if (error instanceof Error) {
+      details.causeMessage = error.message;
+      details.causeName = error.name;
+    }
+
+    const errorRecord = this.asRecord(error);
+
+    if (errorRecord === null) {
+      return details;
+    }
+
+    const causeCode = errorRecord.code;
+
+    if (typeof causeCode === 'string' || typeof causeCode === 'number') {
+      details.causeCode = causeCode;
+    }
+
+    const causeStatus = errorRecord.status;
+
+    if (typeof causeStatus === 'number') {
+      details.causeStatus = causeStatus;
+    }
+
+    const responseRecord = this.asRecord(errorRecord.response);
+
+    if (responseRecord === null) {
+      return details;
+    }
+
+    const responseStatus = responseRecord.status;
+
+    if (typeof responseStatus === 'number') {
+      details.causeResponseStatus = responseStatus;
+    }
+
+    const responseStatusText = responseRecord.statusText;
+
+    if (typeof responseStatusText === 'string') {
+      details.causeResponseStatusText = responseStatusText;
+    }
+
+    const responseData = responseRecord.data;
+    const responseDataRecord = this.asRecord(responseData);
+
+    if (responseDataRecord === null) {
+      if (responseData !== undefined) {
+        details.causeResponseData = responseData;
+      }
+
+      return details;
+    }
+
+    const responseError = this.asRecord(responseDataRecord.error);
+
+    if (responseError === null) {
+      details.causeResponseData = responseDataRecord;
+      return details;
+    }
+
+    const responseErrorCode = responseError.code;
+
+    if (
+      typeof responseErrorCode === 'string' ||
+      typeof responseErrorCode === 'number'
+    ) {
+      details.causeResponseErrorCode = responseErrorCode;
+    }
+
+    const responseErrorMessage = responseError.message;
+
+    if (typeof responseErrorMessage === 'string') {
+      details.causeResponseErrorMessage = responseErrorMessage;
+    }
+
+    const responseErrorStatus = responseError.status;
+
+    if (typeof responseErrorStatus === 'string') {
+      details.causeResponseErrorStatus = responseErrorStatus;
+    }
+
+    if (Array.isArray(responseError.errors)) {
+      details.causeResponseErrors = responseError.errors;
+    }
+
+    return details;
   }
 
   private buildRetryPolicy(): {
@@ -167,6 +272,40 @@ export class GoogleGmailMailService implements GmailMailService {
     const oauthClient = this.oauthProvider.createClient(this.gmailConfig);
 
     return this.apiClientFactory.create(oauthClient);
+  }
+
+  private toDiagnosticTransferError(
+    error: unknown,
+    fallback: {
+      readonly category: 'technical';
+      readonly code: 'GMAIL_IMPORT_FAILED' | 'GMAIL_LOOKUP_FAILED';
+      readonly details: Readonly<Record<string, unknown>>;
+      readonly message: string;
+      readonly retriable: boolean;
+    },
+  ): TransferJobError {
+    const normalizedError = toTransferJobError(error, fallback);
+    const diagnosticDetails = {
+      ...fallback.details,
+      ...(normalizedError.details ?? {}),
+      ...this.buildDiagnosticDetails(normalizedError.cause ?? error),
+    };
+
+    return new TransferJobError(normalizedError.message, {
+      category: normalizedError.category,
+      code: normalizedError.code,
+      ...(Object.keys(diagnosticDetails).length === 0
+        ? {}
+        : {
+            details: diagnosticDetails,
+          }),
+      ...(normalizedError.cause === undefined
+        ? {}
+        : {
+            cause: normalizedError.cause,
+          }),
+      retriable: normalizedError.retriable,
+    });
   }
 
   private escapeGmailQueryValue(value: string): string {
