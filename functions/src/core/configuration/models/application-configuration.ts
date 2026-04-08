@@ -19,7 +19,7 @@ export class ApplicationConfiguration {
     },
     public readonly job: {
       readonly maxMessagesPerRun: number;
-      readonly schedule: 'every 5 minutes';
+      readonly schedule: string;
       readonly uidlCleanup: {
         readonly cleanupBatchSize: number;
         readonly minimumRetainedCount: number;

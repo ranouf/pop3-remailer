@@ -8,9 +8,10 @@ describe('unit/transfer-email/email-transfer.function scheduler', () => {
     const functionInstance = new EmailTransferFunction();
 
     expect(functionInstance.createScheduleOptions()).toEqual({
+      maxInstances: 1,
       region: 'europe-west1',
       schedule: ConfigurationManager.scheduledTransferCron,
-      timeoutSeconds: 300,
+      timeoutSeconds: 60,
     });
   });
 

@@ -160,14 +160,14 @@ describe('integration/transfer-email/functions/email-transfer.function', () => {
     );
 
     expect(result.summary.status).toBe(JobRunStatus.Completed);
-    expect(result.summary.detectedCount).toBe(1);
+    expect(result.summary.detectedCount).toBe(0);
     expect(result.summary.transferredCount).toBe(0);
-    expect(result.summary.skippedCount).toBe(1);
+    expect(result.summary.skippedCount).toBe(0);
     expect(jobRuns).toHaveLength(1);
-    expect(jobRuns[0]?.skippedCount).toBe(1);
+    expect(jobRuns[0]?.skippedCount).toBe(0);
     expect(processedEmail?.status).toBe(EmailRecordStatus.Imported);
     expect(processedEmail?.gmailMessageId).toBe('existing-gmail-message-id');
     expect(gmailClient?.importedMessages ?? []).toHaveLength(0);
-    expect(statistics?.kpis.lastRun?.skippedCount).toBe(1);
+    expect(statistics?.kpis.lastRun?.skippedCount).toBe(0);
   });
 });

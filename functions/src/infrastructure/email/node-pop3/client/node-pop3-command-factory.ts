@@ -22,6 +22,7 @@ export class NodePop3CommandFactory implements Pop3CommandFactoryInterface {
       LIST: async (messageNumber) => client.LIST(messageNumber),
       QUIT: async () => client.QUIT(),
       RETR: async (messageNumber) => client.RETR(messageNumber),
+      STAT: async () => client.STAT(),
       UIDL: async (messageNumber) => client.UIDL(messageNumber),
       connect: async () => {
         await this.connectAndAuthenticate(client);

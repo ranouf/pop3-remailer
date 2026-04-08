@@ -9,8 +9,9 @@ import type { EmailTransferJobInterface } from './email-transfer-job.interface';
 import { EmailTransferModule } from './email-transfer.module';
 
 export class EmailTransferFunction {
+  public static readonly maxInstances = 1;
   public static readonly region = 'europe-west1';
-  public static readonly timeoutSeconds = 300;
+  public static readonly timeoutSeconds = 60;
 
   public constructor(
     private readonly options: {
@@ -45,11 +46,13 @@ export class EmailTransferFunction {
 
   // Builds the Firebase Scheduler configuration for the recurring email transfer job.
   public createScheduleOptions(): {
+    readonly maxInstances: number;
     readonly region: string;
     readonly schedule: string;
     readonly timeoutSeconds: number;
   } {
     return {
+      maxInstances: EmailTransferFunction.maxInstances,
       region: EmailTransferFunction.region,
       schedule: ConfigurationManager.scheduledTransferCron,
       timeoutSeconds: EmailTransferFunction.timeoutSeconds,

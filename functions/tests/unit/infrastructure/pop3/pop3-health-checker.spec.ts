@@ -30,6 +30,10 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
     return Promise.resolve('');
   }
 
+  public STAT(): Promise<string> {
+    return Promise.resolve('0 0');
+  }
+
   public UIDL(): Promise<string[][]> {
     return Promise.resolve([]);
   }
