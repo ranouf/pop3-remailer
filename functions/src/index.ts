@@ -1,6 +1,9 @@
-import { ScheduledEmailTransferJobHelper } from './jobs/email-transfer-scheduled-job.helper';
+import { OperationsApi } from './api/program';
+import { createEmailTransferContainer } from './jobs/email-transfer/bootstrap/email-transfer.container';
+import { EmailTransferModule } from './jobs/email-transfer/email-transfer.module';
+import type { EmailTransferFunction } from './jobs/email-transfer/email-transfer.function';
 
-export const foundationMarker = 'project-foundation';
-export { runEmailTransferJobLocally } from './jobs/run-email-transfer-job-local';
-export const scheduledEmailTransfer =
-  ScheduledEmailTransferJobHelper.createFunction();
+export const api = OperationsApi.createFunction();
+export const scheduledEmailTransfer = createEmailTransferContainer()
+  .get<EmailTransferFunction>(EmailTransferModule.EmailTransferFunction)
+  .createFunction();

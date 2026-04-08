@@ -1,15 +1,16 @@
-import type { RawEmailMessage } from '../../../../src/domain/email';
-import { TransferJobError } from '../../../../src/domain/errors';
-import { createUidl } from '../../../../src/domain/uidl';
-import type { GmailApiClientFactoryInterface } from '../../../../src/infrastructure/gmail/gmail-api-client-factory.interface';
-import type { GmailApiClientInterface } from '../../../../src/infrastructure/gmail/gmail-api-client.interface';
-import { GoogleGmailMailService } from '../../../../src/infrastructure/gmail/gmail-mail-service';
-import type { GmailOAuthProviderInterface } from '../../../../src/infrastructure/gmail/gmail-oauth-provider.interface';
+import { RawEmailMessage } from '../../../../src/core/email/pop3';
+import { TransferJobError } from '../../../../src/core/operation-error';
+import { Uidl } from '../../../../src/core/email/uidl';
+import type { GmailApiClientFactoryInterface } from '../../../../src/infrastructure/email/gmail/client/gmail-api-client-factory.interface';
+import type { GmailApiClientInterface } from '../../../../src/infrastructure/email/gmail/client/gmail-api-client.interface';
+import { GoogleGmailMailService } from '../../../../src/infrastructure/email/gmail/gmail-mail-service';
+import type { GmailOAuthProviderInterface } from '../../../../src/infrastructure/email/gmail/oauth/gmail-oauth-provider.interface';
 import type {
   GmailImportResponse,
   GmailListMessagesResponse,
-} from '../../../../src/infrastructure/gmail/models';
-import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/gmail/oauth2-client-like.interface';
+  GmailProfileResponse,
+} from '../../../../src/infrastructure/email/gmail/models';
+import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/email/gmail/oauth/oauth2-client-like.interface';
 
 class FakeOAuthProvider implements GmailOAuthProviderInterface {
   public readonly client: OAuth2ClientLikeInterface = {
@@ -53,6 +54,12 @@ class FakeGmailApiClient implements GmailApiClientInterface {
   public listFailure: Error | null = null;
 
   public readonly users = {
+    getProfile: (): Promise<GmailProfileResponse> =>
+      Promise.resolve({
+        data: {
+          emailAddress: 'destination@gmail.com',
+        },
+      }),
     messages: {
       import: (request: {
         readonly requestBody: {
@@ -95,13 +102,14 @@ class FakeGmailApiClientFactory implements GmailApiClientFactoryInterface {
   }
 }
 
-const buildRawEmailMessage = (): RawEmailMessage => ({
-  messageNumber: 7,
-  messageSize: 128,
-  rawMessage:
-    'From: source@example.com\r\nMessage-ID: <abc123@example.com>\r\n\r\nBody',
-  uidl: createUidl('uidl-gmail-1'),
-});
+const buildRawEmailMessage = (): RawEmailMessage =>
+  new RawEmailMessage({
+    messageNumber: 7,
+    messageSize: 128,
+    rawMessage:
+      'From: source@example.com\r\nMessage-ID: <abc123@example.com>\r\n\r\nBody',
+    uidl: Uidl.create('uidl-gmail-1'),
+  });
 
 describe('infrastructure/gmail/gmail-mail-service', () => {
   it('imports a raw message into Gmail and preserves the raw payload', async () => {
@@ -125,7 +133,7 @@ describe('infrastructure/gmail/gmail-mail-service', () => {
       buildRawEmailMessage(),
     );
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       gmailMessageId: 'gmail-message-id',
       gmailThreadId: 'gmail-thread-id',
     });
@@ -161,7 +169,7 @@ describe('infrastructure/gmail/gmail-mail-service', () => {
       'abc123@example.com',
     );
 
-    expect(lookup).toEqual({
+    expect(lookup).toMatchObject({
       gmailMessageId: 'gmail-found-id',
     });
   });
@@ -216,9 +224,12 @@ describe('infrastructure/gmail/gmail-mail-service', () => {
       apiClientFactory,
     );
 
-    await expect(
-      service.importMessage('destination@gmail.com', buildRawEmailMessage()),
-    ).resolves.toEqual({
+    const result = await service.importMessage(
+      'destination@gmail.com',
+      buildRawEmailMessage(),
+    );
+
+    expect(result).toMatchObject({
       gmailThreadId: 'gmail-thread-id',
     });
   });

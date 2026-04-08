@@ -1,22 +1,22 @@
-import type { AppConfig } from '../../config/environment';
-import { AmplitudeNodeClient } from './amplitude-node-client';
+import type { ApplicationConfiguration } from '../../core/configuration/models/application-configuration';
+import { AmplitudeNodeClient } from './client/amplitude-node-client';
 import type {
-  AnalyticsTracker,
-  StructuredLogger,
+  AnalyticsTrackEvent,
+  AnalyticsTrackerService,
   TrackerEventProperties,
-  TransferEventName,
-} from '../../domain/ports';
-import type { AmplitudeNodeClientInterface } from './amplitude-node-client.interface';
+} from '../../core/analytics';
+import type { StructuredLogger } from '../../core/logging/structured-logger.interface';
+import type { AmplitudeNodeClientInterface } from './client/amplitude-node-client.interface';
 
-export class AmplitudeTrackerService implements AnalyticsTracker {
+export class AmplitudeTrackerService implements AnalyticsTrackerService {
   private static readonly backendDeviceIdPrefix = 'pop3-remailer-backend';
 
   private readonly amplitudeClient: AmplitudeNodeClientInterface;
-  private readonly analyticsConfig: AppConfig['analytics'];
+  private readonly analyticsConfig: ApplicationConfiguration['analytics'];
   private readonly logger: StructuredLogger;
 
   public constructor(
-    analyticsConfig: AppConfig['analytics'],
+    analyticsConfig: ApplicationConfiguration['analytics'],
     logger: StructuredLogger,
     amplitudeClient: AmplitudeNodeClientInterface = new AmplitudeNodeClient(
       analyticsConfig.amplitudeApiKey,
@@ -37,19 +37,16 @@ export class AmplitudeTrackerService implements AnalyticsTracker {
     }
   }
 
-  public async track(
-    eventName: TransferEventName,
-    properties: TrackerEventProperties,
-  ): Promise<void> {
-    const eventProperties = this.buildEventProperties(properties);
+  public async track(event: AnalyticsTrackEvent): Promise<void> {
+    const eventProperties = this.buildEventProperties(event.properties);
     const identity = this.buildEventIdentity(eventProperties);
-    const insertId = this.buildInsertId(eventName, eventProperties);
+    const insertId = this.buildInsertId(event);
 
     try {
       await this.amplitudeClient.track({
         device_id: identity.deviceId,
         event_properties: eventProperties,
-        event_type: eventName,
+        event_type: event.eventName,
         ...(insertId === undefined
           ? {}
           : {
@@ -64,7 +61,7 @@ export class AmplitudeTrackerService implements AnalyticsTracker {
     } catch (error) {
       this.logger.warn('Amplitude tracking failed.', {
         error: this.toErrorMessage(error),
-        eventName,
+        eventName: event.eventName,
         properties: eventProperties,
       });
     }
@@ -105,19 +102,16 @@ export class AmplitudeTrackerService implements AnalyticsTracker {
     return eventProperties;
   }
 
-  private buildInsertId(
-    eventName: TransferEventName,
-    properties: TrackerEventProperties,
-  ): string | undefined {
+  private buildInsertId(event: AnalyticsTrackEvent): string | undefined {
     const stableIdentifierParts = [
-      this.readStringProperty(properties, 'jobId'),
-      this.readStringProperty(properties, 'uidl'),
-      this.readStringProperty(properties, 'executionTime'),
+      this.readStringProperty(event.properties, 'jobId'),
+      this.readStringProperty(event.properties, 'uidl'),
+      this.readStringProperty(event.properties, 'executionTime'),
     ].filter((value): value is string => value !== undefined);
 
     return stableIdentifierParts.length === 0
       ? undefined
-      : [eventName, ...stableIdentifierParts].join(':');
+      : [event.eventName, ...stableIdentifierParts].join(':');
   }
 
   private readStringProperty(

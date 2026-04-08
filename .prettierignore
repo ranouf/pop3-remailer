@@ -3,6 +3,7 @@
 coverage
 functions/coverage
 functions/lib
+functions/src/api/generated
 functions/node_modules
 node_modules
 package-lock.json

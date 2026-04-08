@@ -1,4 +1,4 @@
-import type { StructuredLogger } from '../../domain/ports';
+import type { StructuredLogger } from '../../core/logging/structured-logger.interface';
 
 export interface LogEntry {
   readonly context?: Readonly<Record<string, unknown>>;

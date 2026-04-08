@@ -4,7 +4,7 @@ import type {
   FirestoreCollectionReference,
   FirestoreDatabase,
   FirestoreTransaction,
-} from '../types';
+} from '../models';
 import { FirebaseAdminFirestoreCollectionReference } from './firebase-admin-firestore-collection-reference';
 import { FirebaseAdminFirestoreTransaction } from './firebase-admin-firestore-transaction';
 

@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SourceAccount } from '../../../../src/domain/email';
-import { createUidl } from '../../../../src/domain/uidl';
-import { NodePop3MailService } from '../../../../src/infrastructure/pop3/node-pop3-mail-service';
-import type { Pop3CommandClientInterface } from '../../../../src/infrastructure/pop3/pop3-command-client.interface';
-import type { Pop3CommandFactoryInterface } from '../../../../src/infrastructure/pop3/pop3-command-factory.interface';
+import {
+  SourceProvider,
+  type SourceAccount,
+} from '../../../../src/jobs/email-transfer/models/source-account';
+import { Uidl } from '../../../../src/core/email/uidl';
+import { NodePop3MailService } from '../../../../src/infrastructure/email/node-pop3/node-pop3-mail-service';
+import type { Pop3CommandClientInterface } from '../../../../src/infrastructure/email/node-pop3/client/pop3-command-client.interface';
+import type { Pop3CommandFactoryInterface } from '../../../../src/infrastructure/email/node-pop3/client/pop3-command-factory.interface';
 
 class FakePop3CommandClient implements Pop3CommandClientInterface {
   public readonly commandOrder: string[] = [];
@@ -105,7 +108,7 @@ class FakePop3CommandFactory implements Pop3CommandFactoryInterface {
 const sourceAccount: SourceAccount = {
   address: 'source@orange.fr',
   id: 'orange:source@orange.fr',
-  provider: 'orange',
+  provider: SourceProvider.Orange,
   username: 'source@orange.fr',
 };
 
@@ -134,12 +137,12 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
       {
         messageNumber: 3,
         messageSize: 300,
-        uidl: createUidl('uidl-003'),
+        uidl: Uidl.create('uidl-003'),
       },
       {
         messageNumber: 2,
         messageSize: 200,
-        uidl: createUidl('uidl-002'),
+        uidl: Uidl.create('uidl-002'),
       },
     ]);
     expect(factory.client.connectCalls).toBe(1);
@@ -159,7 +162,7 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
       messageSize: 444,
       rawMessage:
         'From: source@example.com\r\nMessage-ID: <id-3@example.com>\r\n\r\nHello',
-      uidl: createUidl('uidl-003'),
+      uidl: Uidl.create('uidl-003'),
     });
     expect(factory.client.retrCalls).toEqual([3]);
     expect(factory.client.quitCalls).toBe(1);

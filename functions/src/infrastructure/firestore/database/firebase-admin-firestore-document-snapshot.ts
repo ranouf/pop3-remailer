@@ -1,6 +1,6 @@
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
 
-import type { FirestoreDocumentSnapshot } from '../types';
+import type { FirestoreDocumentSnapshot } from '../models';
 
 export class FirebaseAdminFirestoreDocumentSnapshot<
   T,

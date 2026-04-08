@@ -22,6 +22,7 @@ export default defineConfig({
         'coverage/**',
         'eslint.config.js',
         'lib/**',
+        'src/api/generated/**',
         'tests/**',
         'vitest.config.ts',
       ],

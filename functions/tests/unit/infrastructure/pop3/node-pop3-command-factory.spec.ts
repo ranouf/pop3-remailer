@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { NodePop3CommandFactory } from '../../../../src/infrastructure/pop3/node-pop3-command-factory';
+import { NodePop3CommandFactory } from '../../../../src/infrastructure/email/node-pop3/client/node-pop3-command-factory';
 
 const { pop3ConstructorMock } = vi.hoisted(() => ({
   pop3ConstructorMock: vi.fn(),

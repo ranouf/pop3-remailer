@@ -6,7 +6,12 @@ const prettier = require('eslint-config-prettier');
 
 module.exports = defineConfig([
   {
-    ignores: ['coverage/**', 'lib/**', 'node_modules/**'],
+    ignores: [
+      'coverage/**',
+      'lib/**',
+      'node_modules/**',
+      'src/api/generated/**',
+    ],
   },
   {
     files: ['**/*.{js,cjs,mjs}'],

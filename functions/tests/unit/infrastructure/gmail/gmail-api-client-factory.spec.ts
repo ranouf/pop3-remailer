@@ -1,8 +1,8 @@
 import type { gmail_v1 } from 'googleapis';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GmailApiClientFactory } from '../../../../src/infrastructure/gmail/gmail-api-client-factory';
-import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/gmail/oauth2-client-like.interface';
+import { GmailApiClientFactory } from '../../../../src/infrastructure/email/gmail/client/gmail-api-client-factory';
+import type { OAuth2ClientLikeInterface } from '../../../../src/infrastructure/email/gmail/oauth/oauth2-client-like.interface';
 
 const { gmailMock, importMock, listMock } = vi.hoisted(() => {
   const hoistedImportMock = vi.fn();

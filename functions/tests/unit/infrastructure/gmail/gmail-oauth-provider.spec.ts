@@ -1,5 +1,5 @@
-import { GoogleGmailOAuthProvider } from '../../../../src/infrastructure/gmail/gmail-oauth-provider';
-import { GmailOAuthSettings } from '../../../../src/infrastructure/gmail/settings/gmail-oauth.settings';
+import { GoogleGmailOAuthProvider } from '../../../../src/infrastructure/email/gmail/oauth/gmail-oauth-provider';
+import { GmailOAuthSettings } from '../../../../src/infrastructure/email/gmail/settings/gmail-oauth.settings';
 
 describe('infrastructure/gmail/gmail-oauth-provider', () => {
   it('configures an OAuth2 client with the refresh token', () => {

@@ -1,8 +1,8 @@
-import { transferEventNames } from '../../../src/domain/ports';
+import { TransferEventName } from '../../../src/core/analytics';
 
-describe('domain/ports', () => {
+describe('domain/analytics', () => {
   it('defines all required tracking event names', () => {
-    expect(transferEventNames).toEqual([
+    expect(Object.values(TransferEventName)).toEqual([
       'job_started',
       'job_finished',
       'job_duration_recorded',

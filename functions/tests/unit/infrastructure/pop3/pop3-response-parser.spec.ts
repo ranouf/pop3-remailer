@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Pop3ResponseParser } from '../../../../src/infrastructure/pop3/pop3-response-parser';
+import { Pop3ResponseParser } from '../../../../src/infrastructure/email/node-pop3/parser/pop3-response-parser';
 
 describe('infrastructure/pop3/pop3-response', () => {
   const parser = new Pop3ResponseParser();
@@ -24,10 +24,10 @@ describe('infrastructure/pop3/pop3-response', () => {
   });
 
   it('parses a single POP3 UIDL entry', () => {
-    expect(parser.parseUidlEntry(['7', 'uidl-007'])).toEqual({
-      messageNumber: 7,
-      uidl: 'uidl-007',
-    });
+    const result = parser.parseUidlEntry(['7', 'uidl-007']);
+
+    expect(result.messageNumber).toBe(7);
+    expect(result.uidl.toString()).toBe('uidl-007');
   });
 
   it('parses a single POP3 LIST size entry', () => {

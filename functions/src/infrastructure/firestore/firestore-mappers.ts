@@ -1,10 +1,22 @@
-import type { JobRunStatus, JobRunSummary } from '../../domain/job-run';
-import type { ProcessedEmailRecord } from '../../domain/processed-email';
-import type { SourceProvider } from '../../domain/email';
-import { createUidl } from '../../domain/uidl';
-import type { FirestoreTimestamp } from './types';
+import {
+  JobRunEntity as JobRunEntityModel,
+  type JobRunStatus,
+  type JobRunEntity,
+} from '../../core/job-run';
+import {
+  JobRunStatisticsEntity as JobRunStatisticsEntityModel,
+  type JobRunStatisticsEntity,
+} from '../../core/job-run-statistics';
+import {
+  ProcessedEmailMetadata as ProcessedEmailMetadataModel,
+  type ProcessedEmailEntity,
+  ProcessedEmailEntity as ProcessedEmailEntityModel,
+} from '../../core/email/processed-email';
+import type { SourceProvider } from '../../jobs/email-transfer/models/source-account';
+import { Uidl } from '../../core/email/uidl';
+import type { FirestoreTimestamp } from './models';
 
-export interface StoredProcessedEmailRecord {
+export interface StoredProcessedEmailEntity {
   readonly createdAt: Date | FirestoreTimestamp;
   readonly gmailMessageId?: string;
   readonly importedAt?: Date | FirestoreTimestamp;
@@ -17,7 +29,7 @@ export interface StoredProcessedEmailRecord {
   };
   readonly sourceAccountId: string;
   readonly sourceProvider: SourceProvider;
-  readonly status: ProcessedEmailRecord['status'];
+  readonly status: ProcessedEmailEntity['status'];
   readonly uidl: string;
   readonly updatedAt: Date | FirestoreTimestamp;
 }
@@ -37,107 +49,131 @@ export interface StoredJobRunRecord {
   readonly transferredCount: number;
 }
 
+export interface StoredJobRunStatisticsRecord {
+  readonly dailyPoints: readonly {
+    readonly averageDurationMs: number | null;
+    readonly date: Date | FirestoreTimestamp;
+    readonly detectedCount: number;
+    readonly failedCount: number;
+    readonly runCount: number;
+    readonly transferredCount: number;
+  }[];
+  readonly generatedAt: Date | FirestoreTimestamp;
+  readonly kpis: {
+    readonly detectedLast24h: number;
+    readonly failedLast24h: number;
+    readonly lastError: StoredJobRunRecord | null;
+    readonly lastRun: StoredJobRunRecord | null;
+    readonly lastSuccess: StoredJobRunRecord | null;
+    readonly transferredLast24h: number;
+  };
+  readonly recentErrors: readonly StoredJobRunRecord[];
+  readonly recentRuns: readonly StoredJobRunRecord[];
+  readonly sourceAccountId: string;
+}
+
 const toDate = (value: Date | FirestoreTimestamp): Date =>
   value instanceof Date ? value : value.toDate();
 
-export const toProcessedEmailRecord = (
-  storedRecord: StoredProcessedEmailRecord,
-): ProcessedEmailRecord => ({
-  createdAt: toDate(storedRecord.createdAt),
-  ...(storedRecord.gmailMessageId === undefined
-    ? {}
-    : {
-        gmailMessageId: storedRecord.gmailMessageId,
-      }),
-  ...(storedRecord.importedAt === undefined
-    ? {}
-    : {
-        importedAt: toDate(storedRecord.importedAt),
-      }),
-  ...(storedRecord.lastError === undefined || storedRecord.lastError === null
-    ? {}
-    : {
-        lastError: storedRecord.lastError,
-      }),
-  metadata: {
-    ...(storedRecord.metadata?.claimJobId === undefined
+export const toProcessedEmailEntity = (
+  storedRecord: StoredProcessedEmailEntity,
+): ProcessedEmailEntity =>
+  new ProcessedEmailEntityModel({
+    createdAt: toDate(storedRecord.createdAt),
+    ...(storedRecord.gmailMessageId === undefined
       ? {}
       : {
-          claimJobId: storedRecord.metadata.claimJobId,
+          gmailMessageId: storedRecord.gmailMessageId,
         }),
-    ...(storedRecord.metadata?.messageId === undefined
+    ...(storedRecord.importedAt === undefined
       ? {}
       : {
-          messageId: storedRecord.metadata.messageId,
+          importedAt: toDate(storedRecord.importedAt),
         }),
-    ...(storedRecord.metadata?.messageNumber === undefined
+    ...(storedRecord.lastError === undefined || storedRecord.lastError === null
       ? {}
       : {
-          messageNumber: storedRecord.metadata.messageNumber,
+          lastError: storedRecord.lastError,
         }),
-    ...(storedRecord.metadata?.messageSize === undefined
-      ? {}
-      : {
-          messageSize: storedRecord.metadata.messageSize,
-        }),
-  },
-  sourceAccountId: storedRecord.sourceAccountId,
-  sourceProvider: storedRecord.sourceProvider,
-  status: storedRecord.status,
-  uidl: createUidl(storedRecord.uidl),
-  updatedAt: toDate(storedRecord.updatedAt),
-});
+    metadata: new ProcessedEmailMetadataModel({
+      ...(storedRecord.metadata?.claimJobId === undefined
+        ? {}
+        : {
+            claimJobId: storedRecord.metadata.claimJobId,
+          }),
+      ...(storedRecord.metadata?.messageId === undefined
+        ? {}
+        : {
+            messageId: storedRecord.metadata.messageId,
+          }),
+      ...(storedRecord.metadata?.messageNumber === undefined
+        ? {}
+        : {
+            messageNumber: storedRecord.metadata.messageNumber,
+          }),
+      ...(storedRecord.metadata?.messageSize === undefined
+        ? {}
+        : {
+            messageSize: storedRecord.metadata.messageSize,
+          }),
+    }),
+    sourceAccountId: storedRecord.sourceAccountId,
+    sourceProvider: storedRecord.sourceProvider,
+    status: storedRecord.status,
+    uidl: Uidl.create(storedRecord.uidl),
+    updatedAt: toDate(storedRecord.updatedAt),
+  });
 
-export const toStoredProcessedEmailRecord = (
-  record: ProcessedEmailRecord,
-): StoredProcessedEmailRecord => ({
-  createdAt: record.createdAt,
-  ...(record.gmailMessageId === undefined
+export const toStoredProcessedEmailEntity = (
+  entity: ProcessedEmailEntity,
+): StoredProcessedEmailEntity => ({
+  createdAt: entity.createdAt,
+  ...(entity.gmailMessageId === undefined
     ? {}
     : {
-        gmailMessageId: record.gmailMessageId,
+        gmailMessageId: entity.gmailMessageId,
       }),
-  ...(record.importedAt === undefined
+  ...(entity.importedAt === undefined
     ? {}
     : {
-        importedAt: record.importedAt,
+        importedAt: entity.importedAt,
       }),
-  ...(record.lastError === undefined
+  ...(entity.lastError === undefined
     ? {}
     : {
-        lastError: record.lastError,
+        lastError: entity.lastError,
       }),
   metadata: {
-    ...(record.metadata.claimJobId === undefined
+    ...(entity.metadata.claimJobId === undefined
       ? {}
       : {
-          claimJobId: record.metadata.claimJobId,
+          claimJobId: entity.metadata.claimJobId,
         }),
-    ...(record.metadata.messageId === undefined
+    ...(entity.metadata.messageId === undefined
       ? {}
       : {
-          messageId: record.metadata.messageId,
+          messageId: entity.metadata.messageId,
         }),
-    ...(record.metadata.messageNumber === undefined
+    ...(entity.metadata.messageNumber === undefined
       ? {}
       : {
-          messageNumber: record.metadata.messageNumber,
+          messageNumber: entity.metadata.messageNumber,
         }),
-    ...(record.metadata.messageSize === undefined
+    ...(entity.metadata.messageSize === undefined
       ? {}
       : {
-          messageSize: record.metadata.messageSize,
+          messageSize: entity.metadata.messageSize,
         }),
   },
-  sourceAccountId: record.sourceAccountId,
-  sourceProvider: record.sourceProvider,
-  status: record.status,
-  uidl: record.uidl,
-  updatedAt: record.updatedAt,
+  sourceAccountId: entity.sourceAccountId,
+  sourceProvider: entity.sourceProvider,
+  status: entity.status,
+  uidl: entity.uidl.toString(),
+  updatedAt: entity.updatedAt,
 });
 
 export const toStoredJobRunRecord = (
-  summary: JobRunSummary,
+  summary: JobRunEntity,
 ): StoredJobRunRecord => ({
   detectedCount: summary.detectedCount,
   ...(summary.durationMs === undefined
@@ -160,3 +196,132 @@ export const toStoredJobRunRecord = (
   status: summary.status,
   transferredCount: summary.transferredCount,
 });
+
+export const toJobRunEntity = (
+  storedRecord: StoredJobRunRecord,
+): JobRunEntity =>
+  new JobRunEntityModel({
+    detectedCount: storedRecord.detectedCount,
+    ...(storedRecord.durationMs === undefined
+      ? {}
+      : {
+          durationMs: storedRecord.durationMs,
+        }),
+    failedCount: storedRecord.failedCount,
+    ...(storedRecord.finishedAt === undefined
+      ? {}
+      : {
+          finishedAt: toDate(storedRecord.finishedAt),
+        }),
+    jobId: storedRecord.jobId,
+    processedCount: storedRecord.processedCount,
+    provider: storedRecord.provider,
+    skippedCount: storedRecord.skippedCount,
+    sourceAccountId: storedRecord.sourceAccountId,
+    startedAt: toDate(storedRecord.startedAt),
+    status: storedRecord.status,
+    transferredCount: storedRecord.transferredCount,
+  });
+
+export const toStoredJobRunStatisticsRecord = (
+  statistics: JobRunStatisticsEntity,
+): StoredJobRunStatisticsRecord => ({
+  dailyPoints: statistics.dailyPoints.map((point) => ({
+    averageDurationMs: point.averageDurationMs,
+    date: point.date,
+    detectedCount: point.detectedCount,
+    failedCount: point.failedCount,
+    runCount: point.runCount,
+    transferredCount: point.transferredCount,
+  })),
+  generatedAt: statistics.generatedAt,
+  kpis: {
+    detectedLast24h: statistics.kpis.detectedLast24h,
+    failedLast24h: statistics.kpis.failedLast24h,
+    lastError:
+      statistics.kpis.lastError === null
+        ? null
+        : toStoredJobRunRecord(
+            new JobRunEntityModel({
+              ...statistics.kpis.lastError,
+            }),
+          ),
+    lastRun:
+      statistics.kpis.lastRun === null
+        ? null
+        : toStoredJobRunRecord(
+            new JobRunEntityModel({
+              ...statistics.kpis.lastRun,
+            }),
+          ),
+    lastSuccess:
+      statistics.kpis.lastSuccess === null
+        ? null
+        : toStoredJobRunRecord(
+            new JobRunEntityModel({
+              ...statistics.kpis.lastSuccess,
+            }),
+          ),
+    transferredLast24h: statistics.kpis.transferredLast24h,
+  },
+  recentErrors: statistics.recentErrors.map((summary) =>
+    toStoredJobRunRecord(
+      new JobRunEntityModel({
+        ...summary,
+      }),
+    ),
+  ),
+  recentRuns: statistics.recentRuns.map((summary) =>
+    toStoredJobRunRecord(
+      new JobRunEntityModel({
+        ...summary,
+      }),
+    ),
+  ),
+  sourceAccountId: statistics.sourceAccountId,
+});
+
+export const toJobRunStatisticsEntity = (
+  storedRecord: StoredJobRunStatisticsRecord,
+): JobRunStatisticsEntity =>
+  new JobRunStatisticsEntityModel(
+    storedRecord.sourceAccountId,
+    storedRecord.dailyPoints.map((point) => ({
+      averageDurationMs: point.averageDurationMs,
+      date: toDate(point.date),
+      detectedCount: point.detectedCount,
+      failedCount: point.failedCount,
+      runCount: point.runCount,
+      transferredCount: point.transferredCount,
+    })),
+    toDate(storedRecord.generatedAt),
+    {
+      detectedLast24h: storedRecord.kpis.detectedLast24h,
+      failedLast24h: storedRecord.kpis.failedLast24h,
+      lastError:
+        storedRecord.kpis.lastError === null
+          ? null
+          : JobRunStatisticsEntityModel.createRunSummary(
+              toJobRunEntity(storedRecord.kpis.lastError),
+            ),
+      lastRun:
+        storedRecord.kpis.lastRun === null
+          ? null
+          : JobRunStatisticsEntityModel.createRunSummary(
+              toJobRunEntity(storedRecord.kpis.lastRun),
+            ),
+      lastSuccess:
+        storedRecord.kpis.lastSuccess === null
+          ? null
+          : JobRunStatisticsEntityModel.createRunSummary(
+              toJobRunEntity(storedRecord.kpis.lastSuccess),
+            ),
+      transferredLast24h: storedRecord.kpis.transferredLast24h,
+    },
+    storedRecord.recentErrors.map((summary) =>
+      JobRunStatisticsEntityModel.createRunSummary(toJobRunEntity(summary)),
+    ),
+    storedRecord.recentRuns.map((summary) =>
+      JobRunStatisticsEntityModel.createRunSummary(toJobRunEntity(summary)),
+    ),
+  );

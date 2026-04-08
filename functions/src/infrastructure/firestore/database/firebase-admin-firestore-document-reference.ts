@@ -6,7 +6,7 @@ import type {
 import type {
   FirestoreDocumentReference,
   FirestoreDocumentSnapshot,
-} from '../types';
+} from '../models';
 import { FirebaseAdminFirestoreDocumentSnapshot } from './firebase-admin-firestore-document-snapshot';
 
 export class FirebaseAdminFirestoreDocumentReference<

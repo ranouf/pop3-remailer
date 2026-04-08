@@ -1,18 +1,21 @@
 import {
-  isTransferJobError,
-  jobErrorCategories,
-  toTransferJobError,
+  JobErrorCategory,
+  OperationErrorHelper,
   TransferJobError,
-} from '../../../src/domain/errors';
+} from '../../../src/core/operation-error';
 
-describe('domain/errors', () => {
+describe('domain/operation-error', () => {
   it('exposes the supported error categories', () => {
-    expect(jobErrorCategories).toEqual(['functional', 'technical', 'partial']);
+    expect(Object.values(JobErrorCategory)).toEqual([
+      JobErrorCategory.Functional,
+      JobErrorCategory.Technical,
+      JobErrorCategory.Partial,
+    ]);
   });
 
   it('creates a typed transfer job error', () => {
     const error = new TransferJobError('Boom', {
-      category: 'technical',
+      category: JobErrorCategory.Technical,
       code: 'NETWORK_FAILURE',
       retriable: true,
       details: {
@@ -23,7 +26,7 @@ describe('domain/errors', () => {
 
     expect(error.name).toBe('TransferJobError');
     expect(error.message).toBe('Boom');
-    expect(error.category).toBe('technical');
+    expect(error.category).toBe(JobErrorCategory.Technical);
     expect(error.code).toBe('NETWORK_FAILURE');
     expect(error.retriable).toBe(true);
     expect(error.details).toEqual({ provider: 'gmail' });
@@ -32,14 +35,14 @@ describe('domain/errors', () => {
 
   it('keeps an existing transfer job error untouched', () => {
     const error = new TransferJobError('Existing', {
-      category: 'functional',
+      category: JobErrorCategory.Functional,
       code: 'INVALID_UIDL',
       retriable: false,
     });
 
     expect(
-      toTransferJobError(error, {
-        category: 'technical',
+      OperationErrorHelper.create(error, {
+        category: JobErrorCategory.Technical,
         code: 'SHOULD_NOT_BE_USED',
         message: 'Fallback',
         retriable: true,
@@ -48,8 +51,8 @@ describe('domain/errors', () => {
   });
 
   it('wraps unknown errors with a fallback definition', () => {
-    const wrappedError = toTransferJobError('boom', {
-      category: 'partial',
+    const wrappedError = OperationErrorHelper.create('boom', {
+      category: JobErrorCategory.Partial,
       code: 'EMAIL_TRANSFER_FAILED',
       message: 'Email transfer failed.',
       retriable: true,
@@ -58,17 +61,17 @@ describe('domain/errors', () => {
       },
     });
 
-    expect(isTransferJobError(wrappedError)).toBe(true);
+    expect(TransferJobError.isInstance(wrappedError)).toBe(true);
     expect(wrappedError.message).toBe('Email transfer failed.');
-    expect(wrappedError.category).toBe('partial');
+    expect(wrappedError.category).toBe(JobErrorCategory.Partial);
     expect(wrappedError.code).toBe('EMAIL_TRANSFER_FAILED');
     expect(wrappedError.retriable).toBe(true);
     expect(wrappedError.cause).toBe('boom');
   });
 
   it('omits optional fields when the fallback has no details and no cause', () => {
-    const wrappedError = toTransferJobError(undefined, {
-      category: 'technical',
+    const wrappedError = OperationErrorHelper.create(undefined, {
+      category: JobErrorCategory.Technical,
       code: 'POP3_CONNECTION_FAILED',
       message: 'POP3 connection failed.',
       retriable: true,

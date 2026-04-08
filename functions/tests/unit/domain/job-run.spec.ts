@@ -1,26 +1,22 @@
-import { TransferJobError } from '../../../src/domain/errors';
-import {
-  createJobRunSummary,
-  determineJobRunStatus,
-  finalizeJobRunSummary,
-  jobRunStatuses,
-} from '../../../src/domain/job-run';
+import { TransferJobError } from '../../../src/core/operation-error';
+import { JobRunEntity, JobRunStatus } from '../../../src/core/job-run';
+import { SourceProvider } from '../../../src/jobs/email-transfer/models/source-account';
 
 describe('domain/job-run', () => {
   it('exposes the supported job run statuses', () => {
-    expect(jobRunStatuses).toEqual([
-      'running',
-      'completed',
-      'completed_with_failures',
-      'failed',
+    expect(Object.values(JobRunStatus)).toEqual([
+      JobRunStatus.Running,
+      JobRunStatus.Completed,
+      JobRunStatus.CompletedWithFailures,
+      JobRunStatus.Failed,
     ]);
   });
 
   it('creates a running job summary with zeroed counters', () => {
     expect(
-      createJobRunSummary({
+      JobRunEntity.createStarted({
         jobId: 'job-1',
-        provider: 'orange',
+        provider: SourceProvider.Orange,
         sourceAccountId: 'orange:user@example.com',
         startedAt: new Date('2026-03-31T20:00:00.000Z'),
       }),
@@ -29,50 +25,50 @@ describe('domain/job-run', () => {
       failedCount: 0,
       jobId: 'job-1',
       processedCount: 0,
-      provider: 'orange',
+      provider: SourceProvider.Orange,
       skippedCount: 0,
       sourceAccountId: 'orange:user@example.com',
       startedAt: new Date('2026-03-31T20:00:00.000Z'),
-      status: 'running',
+      status: JobRunStatus.Running,
       transferredCount: 0,
     });
   });
 
   it('determines the right final job status from counters', () => {
     expect(
-      determineJobRunStatus({
+      JobRunEntity.determineStatus({
         detectedCount: 2,
         failedCount: 0,
         processedCount: 2,
         skippedCount: 1,
         transferredCount: 1,
       }),
-    ).toBe('completed');
+    ).toBe(JobRunStatus.Completed);
 
     expect(
-      determineJobRunStatus({
+      JobRunEntity.determineStatus({
         detectedCount: 2,
         failedCount: 1,
         processedCount: 2,
         skippedCount: 1,
         transferredCount: 0,
       }),
-    ).toBe('completed_with_failures');
+    ).toBe(JobRunStatus.CompletedWithFailures);
 
     expect(
-      determineJobRunStatus({
+      JobRunEntity.determineStatus({
         detectedCount: 2,
         failedCount: 2,
         processedCount: 2,
         skippedCount: 0,
         transferredCount: 0,
       }),
-    ).toBe('failed');
+    ).toBe(JobRunStatus.Failed);
   });
 
   it('rejects invalid negative counters', () => {
     expect(() =>
-      determineJobRunStatus({
+      JobRunEntity.determineStatus({
         detectedCount: 0,
         failedCount: -1,
         processedCount: 0,
@@ -83,16 +79,15 @@ describe('domain/job-run', () => {
   });
 
   it('finalizes a job summary and computes duration', () => {
-    const summary = createJobRunSummary({
+    const summary = JobRunEntity.createStarted({
       jobId: 'job-2',
-      provider: 'wanadoo',
+      provider: SourceProvider.Wanadoo,
       sourceAccountId: 'wanadoo:user@example.com',
       startedAt: new Date('2026-03-31T20:00:00.000Z'),
     });
 
     expect(
-      finalizeJobRunSummary(
-        summary,
+      summary.finalize(
         {
           detectedCount: 3,
           failedCount: 1,
@@ -109,11 +104,11 @@ describe('domain/job-run', () => {
       finishedAt: new Date('2026-03-31T20:05:00.000Z'),
       jobId: 'job-2',
       processedCount: 3,
-      provider: 'wanadoo',
+      provider: SourceProvider.Wanadoo,
       skippedCount: 1,
       sourceAccountId: 'wanadoo:user@example.com',
       startedAt: new Date('2026-03-31T20:00:00.000Z'),
-      status: 'completed_with_failures',
+      status: JobRunStatus.CompletedWithFailures,
       transferredCount: 1,
     });
   });

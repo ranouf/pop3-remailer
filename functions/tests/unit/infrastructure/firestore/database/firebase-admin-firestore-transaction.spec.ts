@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   FirestoreDocumentReference,
   FirestoreDocumentSnapshot,
-} from '../../../../../src/infrastructure/firestore/types';
+} from '../../../../../src/infrastructure/firestore/models';
 import { FirebaseAdminFirestoreDocumentReference } from '../../../../../src/infrastructure/firestore/database/firebase-admin-firestore-document-reference';
 import { FirebaseAdminFirestoreTransaction } from '../../../../../src/infrastructure/firestore/database/firebase-admin-firestore-transaction';
 

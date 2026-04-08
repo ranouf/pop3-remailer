@@ -1,10 +1,14 @@
 import type { AmplitudeReturn, Result } from '@amplitude/analytics-core';
-
-import { AmplitudeTrackerService } from '../../../../src/infrastructure/analytics/amplitude-tracker-service';
-import type { AmplitudeNodeClientInterface } from '../../../../src/infrastructure/analytics/amplitude-node-client.interface';
-import type { AmplitudeNodeTrackEventModel } from '../../../../src/infrastructure/analytics/models';
-import type { StructuredLogger } from '../../../../src/domain/ports';
 import { describe, expect, it, vi } from 'vitest';
+
+import {
+  AnalyticsTrackEvent,
+  TransferEventName,
+} from '../../../../src/core/analytics';
+import { AmplitudeTrackerService } from '../../../../src/infrastructure/analytics/amplitude-tracker-service';
+import type { AmplitudeNodeClientInterface } from '../../../../src/infrastructure/analytics/client/amplitude-node-client.interface';
+import type { AmplitudeNodeTrackEventModel } from '../../../../src/infrastructure/analytics/models';
+import type { StructuredLogger } from '../../../../src/core/logging/structured-logger.interface';
 
 class FakeAmplitudeNodeClient implements AmplitudeNodeClientInterface {
   public flushError: Error | null = null;
@@ -95,14 +99,16 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
       amplitudeClient,
     );
 
-    await service.track('email_transferred', {
-      executionTime: '2026-04-01T00:00:00.000Z',
-      jobId: 'job-123',
-      processedCount: 1,
-      sourceAccountId: 'orange:source@orange.fr',
-      uidl: 'uidl-123',
-      unused: undefined,
-    });
+    await service.track(
+      new AnalyticsTrackEvent(TransferEventName.EmailTransferred, {
+        executionTime: '2026-04-01T00:00:00.000Z',
+        jobId: 'job-123',
+        processedCount: 1,
+        sourceAccountId: 'orange:source@orange.fr',
+        uidl: 'uidl-123',
+        unused: undefined,
+      }),
+    );
 
     expect(amplitudeClient.trackedEvents).toEqual([
       {
@@ -115,7 +121,7 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
           sourceAccountId: 'orange:source@orange.fr',
           uidl: 'uidl-123',
         },
-        event_type: 'email_transferred',
+        event_type: TransferEventName.EmailTransferred,
         insert_id:
           'email_transferred:job-123:uidl-123:2026-04-01T00:00:00.000Z',
         user_id: 'orange:source@orange.fr',
@@ -135,9 +141,11 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
       amplitudeClient,
     );
 
-    await service.track('job_finished', {
-      processedCount: 4,
-    });
+    await service.track(
+      new AnalyticsTrackEvent(TransferEventName.JobFinished, {
+        processedCount: 4,
+      }),
+    );
 
     expect(amplitudeClient.trackedEvents).toEqual([
       {
@@ -146,7 +154,7 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
           environment: 'test',
           processedCount: 4,
         },
-        event_type: 'job_finished',
+        event_type: TransferEventName.JobFinished,
       },
     ]);
   });
@@ -165,17 +173,19 @@ describe('infrastructure/analytics/amplitude-tracker-service', () => {
     );
 
     await expect(
-      service.track('gmail_import_failed', {
-        jobId: 'job-123',
-        sourceAccountId: 'orange:source@orange.fr',
-        uidl: 'uidl-123',
-      }),
+      service.track(
+        new AnalyticsTrackEvent(TransferEventName.GmailImportFailed, {
+          jobId: 'job-123',
+          sourceAccountId: 'orange:source@orange.fr',
+          uidl: 'uidl-123',
+        }),
+      ),
     ).resolves.toBeUndefined();
 
     expect(logger.warnCalls).toEqual([
       {
         error: 'amplitude unavailable',
-        eventName: 'gmail_import_failed',
+        eventName: TransferEventName.GmailImportFailed,
         properties: {
           environment: 'test',
           jobId: 'job-123',

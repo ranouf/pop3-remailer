@@ -1,28 +1,30 @@
-import { createUidl } from '../../../src/domain/uidl';
 import {
-  canTransferClaimedEmail,
-  isImportedRecord,
-  uidlClaimStatuses,
-  type UidlClaimResult,
-} from '../../../src/domain/processed-email';
+  EmailRecordStatus,
+  ProcessedEmailEntity,
+  ProcessedEmailMetadata,
+  UidlClaimResult,
+  UidlClaimStatus,
+} from '../../../src/core/email/processed-email';
+import { SourceProvider } from '../../../src/jobs/email-transfer/models/source-account';
+import { Uidl } from '../../../src/core/email/uidl';
 
-const baseRecord = {
+const baseRecord = new ProcessedEmailEntity({
   createdAt: new Date('2026-03-31T20:00:00.000Z'),
-  metadata: {
+  metadata: new ProcessedEmailMetadata({
     claimJobId: 'job-1',
     messageNumber: 42,
     messageSize: 128,
-  },
+  }),
   sourceAccountId: 'orange:user@example.com',
-  sourceProvider: 'orange' as const,
-  status: 'processing' as const,
-  uidl: createUidl('uidl-001'),
+  sourceProvider: SourceProvider.Orange,
+  status: EmailRecordStatus.Processing,
+  uidl: Uidl.create('uidl-001'),
   updatedAt: new Date('2026-03-31T20:00:00.000Z'),
-};
+});
 
 describe('domain/processed-email', () => {
   it('exposes the supported claim statuses', () => {
-    expect(uidlClaimStatuses).toEqual([
+    expect(Object.values(UidlClaimStatus)).toEqual([
       'claimed',
       'already_imported',
       'already_processing',
@@ -30,30 +32,29 @@ describe('domain/processed-email', () => {
   });
 
   it('allows transfers only for claimed emails', () => {
-    const claimedResult: UidlClaimResult = {
-      status: 'claimed',
-      record: baseRecord,
-    };
+    const claimedResult = new UidlClaimResult(
+      baseRecord,
+      UidlClaimStatus.Claimed,
+    );
+    const processingResult = new UidlClaimResult(
+      baseRecord,
+      UidlClaimStatus.AlreadyProcessing,
+    );
 
-    const processingResult: UidlClaimResult = {
-      status: 'already_processing',
-      record: baseRecord,
-    };
-
-    expect(canTransferClaimedEmail(claimedResult)).toBe(true);
-    expect(canTransferClaimedEmail(processingResult)).toBe(false);
+    expect(claimedResult.canTransfer()).toBe(true);
+    expect(processingResult.canTransfer()).toBe(false);
   });
 
   it('detects imported records', () => {
-    expect(isImportedRecord(baseRecord)).toBe(false);
+    expect(baseRecord.isImported()).toBe(false);
 
     expect(
-      isImportedRecord({
+      new ProcessedEmailEntity({
         ...baseRecord,
-        status: 'imported',
+        status: EmailRecordStatus.Imported,
         gmailMessageId: 'gmail-123',
         importedAt: new Date('2026-03-31T20:01:00.000Z'),
-      }),
+      }).isImported(),
     ).toBe(true);
   });
 });

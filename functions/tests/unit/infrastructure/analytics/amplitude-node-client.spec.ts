@@ -1,4 +1,4 @@
-import { AmplitudeNodeClient } from '../../../../src/infrastructure/analytics/amplitude-node-client';
+import { AmplitudeNodeClient } from '../../../../src/infrastructure/analytics/client/amplitude-node-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { createInstanceMock, flushMock, initMock, trackMock } = vi.hoisted(

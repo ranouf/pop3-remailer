@@ -4,7 +4,7 @@ import type {
   FirestoreCollectionDocument,
   FirestoreCollectionReference,
   FirestoreDocumentReference,
-} from '../types';
+} from '../models';
 import { FirebaseAdminFirestoreDocumentReference } from './firebase-admin-firestore-document-reference';
 
 export class FirebaseAdminFirestoreCollectionReference<
