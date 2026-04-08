@@ -7,7 +7,7 @@ import { ApplicationConfiguration } from './models/application-configuration';
 import type { ConfigurationManagerInterface } from './configuration-manager.interface';
 
 export class ConfigurationManager implements ConfigurationManagerInterface {
-  public static readonly scheduledTransferCron = 'every 5 minutes';
+  public static readonly scheduledTransferCron = 'every 15 minutes';
 
   public constructor(
     private readonly environmentFileLoader: LocalEnvironmentFileLoader = new LocalEnvironmentFileLoader(),

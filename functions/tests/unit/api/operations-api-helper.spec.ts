@@ -73,6 +73,7 @@ describe('unit/api/program.createHandler', () => {
     expect(mocks.onRequest).toHaveBeenCalledOnce();
     expect(mocks.onRequest).toHaveBeenCalledWith(
       {
+        maxInstances: OperationsApiSettings.maxInstances,
         region: OperationsApiSettings.region,
         timeoutSeconds: OperationsApiSettings.timeoutSeconds,
       },

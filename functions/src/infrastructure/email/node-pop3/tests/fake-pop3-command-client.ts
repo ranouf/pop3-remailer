@@ -30,6 +30,15 @@ export class FakePop3CommandClient implements Pop3CommandClientInterface {
     return Promise.resolve(this.findMessage(messageNumber).rawMessage);
   }
 
+  public STAT(): Promise<string> {
+    const totalSize = this.messages.reduce(
+      (sum, message) => sum + message.messageSize,
+      0,
+    );
+
+    return Promise.resolve(`${this.messages.length} ${totalSize}`);
+  }
+
   public UIDL(messageNumber?: number | string): Promise<string[][] | string[]> {
     if (messageNumber !== undefined) {
       const message = this.findMessage(messageNumber);

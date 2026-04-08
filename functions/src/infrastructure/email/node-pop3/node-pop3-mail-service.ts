@@ -119,44 +119,99 @@ export class NodePop3MailService implements Pop3MailServiceInterface {
 
   public async listMessages(
     sourceAccount: SourceAccount,
+    options: {
+      readonly limit?: number;
+    } = {},
   ): Promise<readonly Pop3MessageMetadata[]> {
     return this.withClient(async (client) => {
       try {
-        const uidlResponse = await this.executeWithRetry(() => client.UIDL(), {
-          fallbackError: {
-            category: JobErrorCategory.Technical,
-            code: 'POP3_LIST_FAILED',
-            details: {
-              sourceAccountId: sourceAccount.id,
-            },
-            message: 'Failed to list POP3 UIDLs.',
-            retriable: true,
-          },
-          policy: this.buildRetryPolicy(),
-          isRetryable: (error) => this.isRetriablePop3Error(error),
-        });
-        const listResponse = await this.executeWithRetry(() => client.LIST(), {
-          fallbackError: {
-            category: JobErrorCategory.Technical,
-            code: 'POP3_LIST_FAILED',
-            details: {
-              sourceAccountId: sourceAccount.id,
-            },
-            message: 'Failed to list POP3 message sizes.',
-            retriable: true,
-          },
-          policy: this.buildRetryPolicy(),
-          isRetryable: (error) => this.isRetriablePop3Error(error),
-        });
-
-        const metadata = this.buildMetadataMap(
-          this.responseParser.parseListEntries(uidlResponse),
-          this.responseParser.parseListEntries(listResponse),
+        const requestedLimit = Math.max(
+          0,
+          Math.min(
+            options.limit ?? this.maxMessagesPerRun,
+            this.maxMessagesPerRun,
+          ),
         );
 
-        return [...metadata]
-          .sort((left, right) => right.messageNumber - left.messageNumber)
-          .slice(0, this.maxMessagesPerRun);
+        if (requestedLimit === 0) {
+          return [];
+        }
+
+        const statResponse = await this.executeWithRetry(() => client.STAT(), {
+          fallbackError: {
+            category: JobErrorCategory.Technical,
+            code: 'POP3_LIST_FAILED',
+            details: {
+              sourceAccountId: sourceAccount.id,
+            },
+            message: 'Failed to read POP3 mailbox statistics.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
+        const totalMessageCount = this.parseMessageCount(statResponse);
+
+        if (totalMessageCount === 0) {
+          return [];
+        }
+
+        const metadata: Pop3MessageMetadata[] = [];
+
+        for (const messageNumber of this.buildRecentMessageNumbers(
+          totalMessageCount,
+          requestedLimit,
+        )) {
+          const uidlResponse = await this.executeWithRetry(
+            () => client.UIDL(messageNumber),
+            {
+              fallbackError: {
+                category: JobErrorCategory.Technical,
+                code: 'POP3_LIST_FAILED',
+                details: {
+                  messageNumber,
+                  sourceAccountId: sourceAccount.id,
+                },
+                message: 'Failed to read POP3 UIDL for a message.',
+                retriable: true,
+              },
+              policy: this.buildRetryPolicy(),
+              isRetryable: (error) => this.isRetriablePop3Error(error),
+            },
+          );
+          const listResponse = await this.executeWithRetry(
+            () => client.LIST(messageNumber),
+            {
+              fallbackError: {
+                category: JobErrorCategory.Technical,
+                code: 'POP3_LIST_FAILED',
+                details: {
+                  messageNumber,
+                  sourceAccountId: sourceAccount.id,
+                },
+                message: 'Failed to read POP3 size for a message.',
+                retriable: true,
+              },
+              policy: this.buildRetryPolicy(),
+              isRetryable: (error) => this.isRetriablePop3Error(error),
+            },
+          );
+          const uidlEntry = this.responseParser.parseUidlEntry(uidlResponse);
+          const sizeEntry =
+            this.responseParser.parseListSizeEntry(listResponse);
+
+          metadata.push(
+            new Pop3MessageMetadata({
+              messageNumber,
+              messageSize: sizeEntry.messageSize,
+              uidl: uidlEntry.uidl,
+            }),
+          );
+        }
+
+        return metadata.sort(
+          (left, right) => right.messageNumber - left.messageNumber,
+        );
       } catch (error) {
         throw this.toPop3Error(error, {
           code: 'POP3_LIST_FAILED',
@@ -169,38 +224,33 @@ export class NodePop3MailService implements Pop3MailServiceInterface {
     }, sourceAccount);
   }
 
-  private buildMetadataMap(
-    uidlEntries: readonly {
-      readonly messageNumber: number;
-      readonly value: string;
-    }[],
-    listEntries: readonly {
-      readonly messageNumber: number;
-      readonly value: string;
-    }[],
-  ): readonly Pop3MessageMetadata[] {
-    const sizeByMessageNumber = new Map<number, number>();
+  private buildRecentMessageNumbers(
+    totalMessageCount: number,
+    limit: number,
+  ): readonly number[] {
+    const firstMessageNumber = Math.max(1, totalMessageCount - limit + 1);
+    const messageNumbers: number[] = [];
 
-    for (const entry of listEntries) {
-      const parsedSize = Number.parseInt(entry.value, 10);
-
-      if (!Number.isInteger(parsedSize) || parsedSize < 0) {
-        throw new Error(`Invalid POP3 message size: ${entry.value}`);
-      }
-
-      sizeByMessageNumber.set(entry.messageNumber, parsedSize);
+    for (
+      let messageNumber = totalMessageCount;
+      messageNumber >= firstMessageNumber;
+      messageNumber -= 1
+    ) {
+      messageNumbers.push(messageNumber);
     }
 
-    return uidlEntries.map(
-      (entry) =>
-        new Pop3MessageMetadata({
-          messageNumber: entry.messageNumber,
-          messageSize: sizeByMessageNumber.get(entry.messageNumber) ?? 0,
-          uidl: this.responseParser.parseUidlEntry([
-            [`${entry.messageNumber}`, entry.value],
-          ]).uidl,
-        }),
-    );
+    return messageNumbers;
+  }
+
+  private parseMessageCount(response: string): number {
+    const [messageCountValue] = response.trim().split(/\s+/u);
+    const messageCount = Number.parseInt(messageCountValue ?? '', 10);
+
+    if (!Number.isInteger(messageCount) || messageCount < 0) {
+      throw new Error(`Invalid POP3 STAT response: ${response}`);
+    }
+
+    return messageCount;
   }
 
   private buildRetryPolicy(): {

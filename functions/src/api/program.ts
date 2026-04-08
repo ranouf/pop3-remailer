@@ -22,6 +22,20 @@ export interface ApiProgramOptions {
   readonly api?: OperationsApi;
 }
 
+const swaggerUiServeFiles = swaggerUi.serveFiles as unknown as (
+  swaggerDoc?: object,
+  options?: object,
+) => RequestHandler[];
+
+const swaggerUiSetup = swaggerUi.setup as unknown as (
+  swaggerDoc?: object,
+  options?: object,
+) => RequestHandler;
+
+const registerRoutes = RegisterRoutes as unknown as (
+  application: Application,
+) => void;
+
 export class OperationsApi {
   public constructor(
     private readonly authTokenVerifier: AuthTokenVerifierInterface,
@@ -46,13 +60,26 @@ export class OperationsApi {
     );
   }
 
-  public static createHandler(options: ApiProgramOptions = {}): Application {
-    return (options.api ?? OperationsApi.create()).createApplication();
+  public static createHandler(
+    options: ApiProgramOptions = {},
+  ): Application {
+    const handler = express();
+    let application: Application | null = null;
+
+    handler.use((request, response, next): void => {
+      application ??= (
+        options.api ?? OperationsApi.create()
+      ).createApplication();
+      application(request, response, next);
+    });
+
+    return handler;
   }
 
   public static createFunction(options: ApiProgramOptions = {}) {
     return onRequest(
       {
+        maxInstances: OperationsApiSettings.maxInstances,
         region: OperationsApiSettings.region,
         timeoutSeconds: OperationsApiSettings.timeoutSeconds,
       },
@@ -68,22 +95,22 @@ export class OperationsApi {
     application.get('/openapi.json', this.serveOpenApiDocument);
     application.use(
       '/docs',
-      ...(swaggerUi.serveFiles(undefined, {
+      ...swaggerUiServeFiles(undefined, {
         customSiteTitle: 'Operations API Docs',
         swaggerOptions: {
           persistAuthorization: true,
         },
         swaggerUrl: './openapi.json',
-      }) as unknown as RequestHandler[]),
-      swaggerUi.setup(undefined, {
+      }),
+      swaggerUiSetup(undefined, {
         customSiteTitle: 'Operations API Docs',
         swaggerOptions: {
           persistAuthorization: true,
         },
         swaggerUrl: './openapi.json',
-      }) as unknown as RequestHandler,
+      }),
     );
-    RegisterRoutes(application);
+    registerRoutes(application);
 
     application.use(notFoundMiddleware);
     application.use(createUnexpectedErrorMiddleware(this.logger));

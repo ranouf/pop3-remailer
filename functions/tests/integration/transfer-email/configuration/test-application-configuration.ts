@@ -19,7 +19,7 @@ export const testApplicationConfiguration: ApplicationConfiguration = {
   },
   job: {
     maxMessagesPerRun: 50,
-    schedule: 'every 5 minutes',
+    schedule: 'every 15 minutes',
     uidlCleanup: {
       cleanupBatchSize: 250,
       minimumRetainedCount: 100,

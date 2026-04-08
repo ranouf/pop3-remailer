@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/20260331_setup
   workflow_dispatch:
 
 permissions:
@@ -71,7 +72,8 @@ jobs:
           UIDL_MINIMUM_RETAINED_COUNT: ${{ secrets.UIDL_MINIMUM_RETAINED_COUNT }}
           UIDL_RETENTION_DAYS: ${{ secrets.UIDL_RETENTION_DAYS }}
         run: |
-          cat > "functions/.env.${FIREBASE_PROJECT_ID}" <<EOF
+          cat > "functions/.env.local" <<EOF
+          APP_FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
           ENVIRONMENT_NAME=${ENVIRONMENT_NAME}
           SOURCE_PROVIDER=${SOURCE_PROVIDER}
           SOURCE_EMAIL_ADDRESS=${SOURCE_EMAIL_ADDRESS}

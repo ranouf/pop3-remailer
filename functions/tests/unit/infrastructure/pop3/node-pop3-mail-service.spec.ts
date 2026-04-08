@@ -15,6 +15,7 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
   public listCalls: Array<number | string | undefined> = [];
   public quitCalls = 0;
   public retrCalls: number[] = [];
+  public statCalls = 0;
   public uidlCalls: Array<number | string | undefined> = [];
   public connectError: Error | null = null;
   public listError: Error | null = null;
@@ -58,7 +59,11 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
       return Promise.resolve(this.listResponse);
     }
 
-    return Promise.resolve([`${messageNumber}`, '444']);
+    const responseEntry = (this.listResponse as string[][]).find(
+      ([currentMessageNumber]) => currentMessageNumber === `${messageNumber}`,
+    );
+
+    return Promise.resolve(responseEntry ?? [`${messageNumber}`, '444']);
   }
 
   public QUIT(): Promise<string> {
@@ -66,6 +71,13 @@ class FakePop3CommandClient implements Pop3CommandClientInterface {
     this.quitCalls += 1;
 
     return Promise.resolve('OK');
+  }
+
+  public STAT(): Promise<string> {
+    this.commandOrder.push('STAT');
+    this.statCalls += 1;
+
+    return Promise.resolve('3 600');
   }
 
   public RETR(messageNumber: number): Promise<string> {
@@ -146,8 +158,9 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
       },
     ]);
     expect(factory.client.connectCalls).toBe(1);
-    expect(factory.client.uidlCalls).toEqual([undefined]);
-    expect(factory.client.listCalls).toEqual([undefined]);
+    expect(factory.client.statCalls).toBe(1);
+    expect(factory.client.uidlCalls).toEqual([3, 2]);
+    expect(factory.client.listCalls).toEqual([3, 2]);
     expect(factory.client.quitCalls).toBe(1);
   });
 
@@ -159,7 +172,7 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
 
     expect(message).toEqual({
       messageNumber: 3,
-      messageSize: 444,
+      messageSize: 300,
       rawMessage:
         'From: source@example.com\r\nMessage-ID: <id-3@example.com>\r\n\r\nHello',
       uidl: Uidl.create('uidl-003'),
@@ -177,8 +190,11 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
 
     expect(factory.client.commandOrder).toEqual([
       'connect',
-      'UIDL',
-      'LIST',
+      'STAT',
+      'UIDL 3',
+      'LIST 3',
+      'UIDL 2',
+      'LIST 2',
       'QUIT',
       'connect',
       'UIDL 3',
@@ -252,7 +268,18 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
 
   it('wraps malformed POP3 listing responses as POP3 list failures', async () => {
     const factory = new FakePop3CommandFactory();
-    factory.client.listResponse = [['3', '-1']];
+    factory.client.LIST = (messageNumber?: string | number) => {
+      factory.client.commandOrder.push(
+        messageNumber === undefined ? 'LIST' : `LIST ${messageNumber}`,
+      );
+      factory.client.listCalls.push(messageNumber);
+
+      if (messageNumber === undefined) {
+        return Promise.resolve(factory.client.listResponse);
+      }
+
+      return Promise.resolve([`${messageNumber}`, '-1']);
+    };
     const mailSource = buildMailSource(factory);
 
     await expect(mailSource.listMessages(sourceAccount)).rejects.toMatchObject({
@@ -260,6 +287,20 @@ describe('infrastructure/pop3/node-pop3-mail-service', () => {
       code: 'POP3_LIST_FAILED',
       retriable: false,
     });
+  });
+
+  it('returns an empty list when the POP3 mailbox is empty', async () => {
+    const factory = new FakePop3CommandFactory();
+    factory.client.STAT = () => {
+      factory.client.commandOrder.push('STAT');
+      factory.client.statCalls += 1;
+      return Promise.resolve('0 0');
+    };
+    const mailSource = buildMailSource(factory);
+
+    await expect(mailSource.listMessages(sourceAccount)).resolves.toEqual([]);
+    expect(factory.client.uidlCalls).toEqual([]);
+    expect(factory.client.listCalls).toEqual([]);
   });
 
   it('wraps non-POP3 raw retrieval errors as non-retriable POP3 retrieval failures', async () => {

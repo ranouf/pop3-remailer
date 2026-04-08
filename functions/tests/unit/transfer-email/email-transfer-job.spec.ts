@@ -18,8 +18,8 @@ import {
   type AnalyticsTrackerService,
 } from '../../../src/core/analytics';
 import {
+  JobRunEntity,
   JobRunStatus,
-  type JobRunEntity,
   type JobRunRepository,
 } from '../../../src/core/job-run';
 import type {
@@ -104,10 +104,11 @@ class FakeGmailMailService implements GmailMailService {
 
 class FakeJobRunRepository implements JobRunRepository {
   public readonly finishedSummaries: JobRunEntity[] = [];
+  public listBySourceAccountResult: readonly JobRunEntity[] = [];
   public readonly startedSummaries: JobRunEntity[] = [];
 
   public listBySourceAccount(): Promise<readonly JobRunEntity[]> {
-    return Promise.resolve([]);
+    return Promise.resolve(this.listBySourceAccountResult);
   }
 
   public saveFinished(summary: JobRunEntity): Promise<void> {
@@ -167,6 +168,9 @@ class FakeLogger implements StructuredLogger {
 class FakePop3MailService implements Pop3MailServiceInterface {
   public getMessageError: Error | null = null;
   public listMessagesError: Error | null = null;
+  public readonly listMessagesCalls: Array<{
+    readonly limit?: number;
+  }> = [];
   public readonly listedMessages: Pop3MessageMetadata[] = [];
   public readonly rawMessages = new Map<number, RawEmailMessage>();
 
@@ -187,7 +191,14 @@ class FakePop3MailService implements Pop3MailServiceInterface {
     return Promise.resolve(rawMessage);
   }
 
-  public listMessages(): Promise<readonly Pop3MessageMetadata[]> {
+  public listMessages(
+    _sourceAccount: SourceAccount,
+    options?: {
+      readonly limit?: number;
+    },
+  ): Promise<readonly Pop3MessageMetadata[]> {
+    this.listMessagesCalls.push(options ?? {});
+
     if (this.listMessagesError !== null) {
       return Promise.reject(this.listMessagesError);
     }
@@ -444,7 +455,7 @@ const config: ApplicationConfiguration = {
   },
   job: {
     maxMessagesPerRun: 50,
-    schedule: 'every 5 minutes',
+    schedule: 'every 15 minutes',
     uidlCleanup: {
       cleanupBatchSize: 250,
       minimumRetainedCount: 100,
@@ -973,5 +984,101 @@ describe('tests/unit/transfer-email/email-transfer-job', () => {
         }),
       ]),
     );
+  });
+
+  it('uses maxMessagesPerRun as the actual POP3 scan limit on the first run', async () => {
+    const jobRunRepository = new FakeJobRunRepository();
+    const jobRunStatisticsManager = new FakeJobRunStatisticsManager();
+    jobRunStatisticsManager.statistics = buildStatisticsEntity();
+    const pop3MailService = new FakePop3MailService();
+
+    const job = new EmailTransferJob(
+      config,
+      new FakeAnalyticsTracker(),
+      new FakeGmailMailService(),
+      jobRunRepository,
+      jobRunStatisticsManager,
+      new FakeJobRunStatisticsRepository(),
+      new FakeLogger(),
+      pop3MailService,
+      new FakeProcessedEmailRepository(),
+      buildClock(),
+    );
+
+    await job.run();
+
+    expect(pop3MailService.listMessagesCalls).toEqual([
+      {
+        limit: config.job.maxMessagesPerRun,
+      },
+    ]);
+  });
+
+  it('stops the incremental scan after enough consecutively imported emails', async () => {
+    const analyticsTracker = new FakeAnalyticsTracker();
+    const jobRunRepository = new FakeJobRunRepository();
+    jobRunRepository.listBySourceAccountResult = [
+      JobRunEntity.createStarted({
+        jobId: 'older-job',
+        provider: sourceAccount.provider,
+        sourceAccountId: sourceAccount.id,
+        startedAt: new Date('2026-03-31T23:00:00.000Z'),
+      }),
+    ];
+    const jobRunStatisticsManager = new FakeJobRunStatisticsManager();
+    jobRunStatisticsManager.statistics = buildStatisticsEntity();
+    const pop3MailService = new FakePop3MailService();
+    const processedEmailRepository = new FakeProcessedEmailRepository();
+
+    for (let messageNumber = 25; messageNumber >= 1; messageNumber -= 1) {
+      const uidl = `uidl-${messageNumber}`;
+
+      pop3MailService.listedMessages.push(buildMetadata(messageNumber, uidl));
+      processedEmailRepository.records.set(
+        `${sourceAccount.id}:${Uidl.create(uidl).toString()}`,
+        new ProcessedEmailEntityModel({
+          createdAt: new Date('2026-03-31T23:55:00.000Z'),
+          importedAt: new Date('2026-03-31T23:56:00.000Z'),
+          metadata: new ProcessedEmailMetadata({
+            claimJobId: 'older-job',
+            messageNumber,
+          }),
+          sourceAccountId: sourceAccount.id,
+          sourceProvider: sourceAccount.provider,
+          status: EmailRecordStatus.Imported,
+          uidl: Uidl.create(uidl),
+          updatedAt: new Date('2026-03-31T23:56:00.000Z'),
+        }),
+      );
+    }
+
+    const job = new EmailTransferJob(
+      config,
+      analyticsTracker,
+      new FakeGmailMailService(),
+      jobRunRepository,
+      jobRunStatisticsManager,
+      new FakeJobRunStatisticsRepository(),
+      new FakeLogger(),
+      pop3MailService,
+      processedEmailRepository,
+      buildClock(),
+    );
+
+    const result = await job.run();
+
+    expect(pop3MailService.listMessagesCalls).toEqual([
+      {
+        limit: 25,
+      },
+    ]);
+    expect(result.summary.detectedCount).toBe(0);
+    expect(result.summary.skippedCount).toBe(0);
+    expect(
+      analyticsTracker.events.some(
+        (event) =>
+          event.eventName === TransferEventName.EmailSkippedAlreadyProcessed,
+      ),
+    ).toBe(false);
   });
 });

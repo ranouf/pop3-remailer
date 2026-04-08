@@ -31,6 +31,8 @@ import type { EmailTransferJobResult } from './email-transfer-job-result';
 import type { JobContext } from './models/job-context';
 
 export class EmailTransferJob extends Job {
+  private static readonly consecutiveKnownImportedMessagesBeforeStop = 10;
+  private static readonly incrementalMessageScanLimit = 25;
   private readonly analyticsTracker: AnalyticsTrackerService;
   private readonly config: ApplicationConfiguration;
   private readonly gmailMailService: GmailMailService;
@@ -291,7 +293,24 @@ export class EmailTransferJob extends Job {
     context: JobContext,
   ): Promise<readonly Pop3MessageMetadata[]> {
     try {
-      return await this.pop3MailService.listMessages(sourceAccount);
+      const hasPriorRuns =
+        (await this.jobRunRepository.listBySourceAccount(sourceAccount.id))
+          .length > 0;
+      const scanLimit = hasPriorRuns
+        ? Math.min(
+            this.config.job.maxMessagesPerRun,
+            EmailTransferJob.incrementalMessageScanLimit,
+          )
+        : this.config.job.maxMessagesPerRun;
+      const messages = await this.pop3MailService.listMessages(sourceAccount, {
+        limit: scanLimit,
+      });
+
+      if (!hasPriorRuns) {
+        return messages;
+      }
+
+      return this.filterIncrementalMessages(messages, context);
     } catch (error) {
       const transferError = this.toJobError(error, {
         code: 'POP3_LIST_FAILED',
@@ -311,6 +330,50 @@ export class EmailTransferJob extends Job {
 
       throw transferError;
     }
+  }
+
+  private async filterIncrementalMessages(
+    messages: readonly Pop3MessageMetadata[],
+    context: JobContext,
+  ): Promise<readonly Pop3MessageMetadata[]> {
+    const filteredMessages: Pop3MessageMetadata[] = [];
+    let consecutiveKnownImportedMessages = 0;
+
+    for (const message of messages) {
+      const processedEmail = await this.processedEmailRepository.findByUidl(
+        this.config.sourceAccount.id,
+        message.uidl,
+      );
+
+      if (processedEmail?.isImported() === true) {
+        consecutiveKnownImportedMessages += 1;
+
+        if (
+          consecutiveKnownImportedMessages >=
+          EmailTransferJob.consecutiveKnownImportedMessagesBeforeStop
+        ) {
+          this.logger.info(
+            'Stopping POP3 incremental scan after known emails.',
+            {
+              consecutiveKnownImportedMessages,
+              executionTime: context.executionTime,
+              jobId: context.jobId,
+              sourceAccountId: this.config.sourceAccount.id,
+              stoppedAtMessageNumber: message.messageNumber,
+            },
+          );
+
+          break;
+        }
+
+        continue;
+      }
+
+      consecutiveKnownImportedMessages = 0;
+      filteredMessages.push(message);
+    }
+
+    return filteredMessages;
   }
 
   private async processMessage(

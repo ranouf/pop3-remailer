@@ -8,5 +8,8 @@ export interface Pop3MailServiceInterface {
   ): Promise<RawEmailMessage>;
   listMessages(
     sourceAccount: SourceAccount,
+    options?: {
+      readonly limit?: number;
+    },
   ): Promise<readonly Pop3MessageMetadata[]>;
 }
