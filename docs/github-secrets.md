@@ -33,14 +33,21 @@
 
 ## Recommendation
 
-Store everything as GitHub repository secrets to keep the deployment workflow
-simple. If you prefer, non-sensitive values such as `ENVIRONMENT_NAME` can later
-be migrated to repository variables.
+Store all deployment inputs as GitHub repository secrets to keep the workflow
+simple and reproducible. Non-sensitive values can be migrated later to
+repository variables if you want a stricter separation.
 
-## Important note about `FIREBASE_PROJECT_ID`
+## Important note about project identifiers
 
-`FIREBASE_PROJECT_ID` is used by the GitHub workflow to select the deploy target
-and to name the temporary dotenv file.
+`FIREBASE_PROJECT_ID` is used by the GitHub workflow to:
 
-It is intentionally not written into the deployed dotenv file because Firebase
-reserves `FIREBASE_*` environment variable names for internal use.
+- select the deployment target
+- name the generated Firebase dotenv file
+
+The workflow also writes:
+
+- `APP_FIREBASE_PROJECT_ID`
+
+into the generated deployment dotenv file so the application can reliably read
+its project identifier at runtime without depending on reserved Firebase
+environment variable names.

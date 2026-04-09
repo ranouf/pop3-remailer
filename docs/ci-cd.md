@@ -4,7 +4,7 @@
 
 Workflow:
 
-- [pull-request-validation.yml](C:\Users\CedricArnould\source\repos\pop3-remailer\.github\workflows\pull-request-validation.yml)
+- [pull-request-validation.yml](../.github/workflows/pull-request-validation.yml)
 
 Trigger:
 
@@ -16,35 +16,54 @@ Checks:
 - `prettier`
 - `typecheck`
 - `build`
-- `test`
+- `test-and-coverage`
 
 Artifacts:
 
 - `functions-build`
 - `coverage-report`
 
+Notes:
+
+- validation runs at the repository level, so both `functions` and `web` are
+  checked together
+- coverage artifacts include both:
+  - `functions/coverage`
+  - `web/coverage`
+
 ## Deployment
 
 Workflow:
 
-- [firebase-deploy.yml](C:\Users\CedricArnould\source\repos\pop3-remailer\.github\workflows\firebase-deploy.yml)
+- [firebase-deploy.yml](../.github/workflows/firebase-deploy.yml)
 
-Trigger:
+Triggers:
 
 - `push` on `main`
+- `workflow_dispatch`
 
-Steps:
+What it does:
 
 1. authenticate to Google Cloud using Workload Identity Federation
 2. install dependencies in Node 22
-3. generate a temporary `functions/.env.<project-id>` file from GitHub Secrets
-4. build the project
-5. deploy Functions and Firestore configuration with Firebase CLI
-6. create a GitHub release using [OVERVIEW.md](C:\Users\CedricArnould\source\repos\pop3-remailer\OVERVIEW.md)
+3. generate `functions/.env.<project-id>` from GitHub Secrets
+4. build the whole repository
+5. validate Firestore rules safety
+6. deploy Firebase Hosting
+7. deploy Firebase Functions
+8. deploy Firestore rules
+9. deploy Firestore indexes
+10. create a GitHub release using [OVERVIEW.md](../OVERVIEW.md)
 
 ## Design choice
 
-The project currently keeps runtime configuration in environment variables
-because the codebase reads `process.env` directly. A later migration to Firebase
-parameterized configuration or Secret Manager can be done without changing the
-core domain and orchestration layers.
+Runtime configuration is still environment-variable based.
+
+This keeps deployment simple while preserving a clean separation between:
+
+- core application logic
+- infrastructure adapters
+- deployment-specific configuration concerns
+
+A later migration to Firebase parameterized configuration or Secret Manager can
+be done without redesigning the main business flow.
