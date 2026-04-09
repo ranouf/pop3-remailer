@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create Firebase dotenv file for deployment
+      - name: Create Firebase dotenv files for deployment
         env:
           AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
           ENVIRONMENT_NAME: ${{ secrets.ENVIRONMENT_NAME }}
@@ -72,7 +72,7 @@ jobs:
           UIDL_MINIMUM_RETAINED_COUNT: ${{ secrets.UIDL_MINIMUM_RETAINED_COUNT }}
           UIDL_RETENTION_DAYS: ${{ secrets.UIDL_RETENTION_DAYS }}
         run: |
-          cat > "functions/.env.local" <<EOF
+          cat > "functions/.env.${FIREBASE_PROJECT_ID}" <<EOF
           APP_FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
           ENVIRONMENT_NAME=${ENVIRONMENT_NAME}
           SOURCE_PROVIDER=${SOURCE_PROVIDER}
@@ -96,6 +96,8 @@ jobs:
           AMPLITUDE_API_KEY=${AMPLITUDE_API_KEY}
           EOF
 
+          cp "functions/.env.${FIREBASE_PROJECT_ID}" "functions/.env.local"
+
       - name: Build project
         run: npm run build
 
@@ -111,10 +113,10 @@ jobs:
           NODE_OPTIONS: --no-deprecation
         run: npx firebase-tools functions:artifacts:setpolicy --project "${FIREBASE_PROJECT_ID}" --location europe-west1 --days 1 --force
 
-      - name: Deploy Firebase Functions, Firestore rules, and indexes
+      - name: Deploy Firebase Hosting, Functions, Firestore rules, and indexes
         env:
           NODE_OPTIONS: --no-deprecation
-        run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only functions,firestore:rules,firestore:indexes --non-interactive --force
+        run: npx firebase-tools deploy --project "${FIREBASE_PROJECT_ID}" --only hosting,functions,firestore:rules,firestore:indexes --non-interactive --force
 
   release:
     name: release

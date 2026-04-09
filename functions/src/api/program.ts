@@ -3,6 +3,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import swaggerUi from 'swagger-ui-express';
 import { Container } from 'inversify';
 
+import type { ApplicationConfiguration } from '../core/configuration/models/application-configuration';
 import type { StructuredLogger } from '../core/logging/structured-logger.interface';
 import type { JobRunStatisticsManagerInterface } from '../core/job-run-statistics';
 import type { HealthCheckManagerInterface } from '../core/health-check/health-check-manager.interface';
@@ -39,6 +40,7 @@ const registerRoutes = RegisterRoutes as unknown as (
 export class OperationsApi {
   public constructor(
     private readonly authTokenVerifier: AuthTokenVerifierInterface,
+    private readonly configuration: ApplicationConfiguration,
     private readonly statisticsManager: JobRunStatisticsManagerInterface,
     private readonly healthCheckManager: HealthCheckManagerInterface,
     private readonly logger: StructuredLogger,
@@ -150,6 +152,7 @@ export class OperationsApi {
   private get runtime() {
     return ApiRuntimeContext.create(
       this.authTokenVerifier,
+      this.configuration,
       this.statisticsManager,
       this.healthCheckManager,
       this.logger,

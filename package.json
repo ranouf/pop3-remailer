@@ -8,20 +8,22 @@
     "node": "22.x"
   },
   "workspaces": [
-    "functions"
+    "functions",
+    "web"
   ],
   "scripts": {
-    "lint": "npm run lint --workspace functions",
-    "lint:fix": "npm run lint:fix --workspace functions",
-    "format": "npm run format --workspace functions",
-    "format:check": "npm run format:check --workspace functions",
-    "typecheck": "npm run typecheck --workspace functions",
-    "build": "npm run build --workspace functions",
-    "test": "npm run test --workspace functions",
-    "coverage": "npm run coverage --workspace functions",
+    "lint": "npm run lint --workspace functions && npm run lint --workspace web",
+    "lint:fix": "npm run lint:fix --workspace functions && npm run lint:fix --workspace web",
+    "format": "npm run format --workspace functions && npm run format --workspace web",
+    "format:check": "npm run format:check --workspace functions && npm run format:check --workspace web",
+    "typecheck": "npm run typecheck --workspace functions && npm run typecheck --workspace web",
+    "build": "npm run build --workspace functions && npm run build --workspace web",
+    "test": "npm run test --workspace functions && npm run test --workspace web -- --watch=false",
+    "coverage": "npm run coverage --workspace functions && npm run coverage --workspace web",
     "verify": "npm run lint && npm run format:check && npm run typecheck && npm run build && npm run test",
     "emulators": "node ./scripts/start-emulators.js",
-    "deploy": "firebase deploy --only functions,firestore:rules"
+    "start:local": "node ./scripts/start-emulators.js --local",
+    "deploy": "firebase deploy --only hosting,functions,firestore:rules,firestore:indexes"
   },
   "devDependencies": {
     "firebase-tools": "^14.25.0"
