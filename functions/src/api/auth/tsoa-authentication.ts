@@ -23,9 +23,18 @@ export async function expressAuthentication(
   }
 
   try {
-    return await ApiRuntimeContext.read(
-      request,
-    ).authTokenVerifier.verifyIdToken(token);
+    const runtime = ApiRuntimeContext.read(request);
+    const authenticatedUser =
+      await runtime.authTokenVerifier.verifyIdToken(token);
+    const authorizedUserEmail =
+      runtime.configuration.gmail.userEmail.toLowerCase();
+    const authenticatedEmail = authenticatedUser.email?.toLowerCase();
+
+    if (authenticatedEmail !== authorizedUserEmail) {
+      throw createHttpError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN);
+    }
+
+    return authenticatedUser;
   } catch {
     throw createHttpError(StatusCodes.FORBIDDEN, ReasonPhrases.FORBIDDEN);
   }

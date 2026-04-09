@@ -3,9 +3,15 @@ import type { AuthTokenVerifierInterface } from '../../../../src/api/auth/auth-t
 export class FakeApiAuthTokenVerifier implements AuthTokenVerifierInterface {
   public readonly tokens: string[] = [];
 
-  public constructor(private readonly shouldReject = false) {}
+  public constructor(
+    private readonly shouldReject = false,
+    private readonly email = 'destination@gmail.com',
+  ) {}
 
-  public verifyIdToken(token: string): Promise<{ readonly uid: string }> {
+  public verifyIdToken(token: string): Promise<{
+    readonly email: string;
+    readonly uid: string;
+  }> {
     this.tokens.push(token);
 
     if (this.shouldReject) {
@@ -13,6 +19,7 @@ export class FakeApiAuthTokenVerifier implements AuthTokenVerifierInterface {
     }
 
     return Promise.resolve({
+      email: this.email,
       uid: 'integration-user',
     });
   }
