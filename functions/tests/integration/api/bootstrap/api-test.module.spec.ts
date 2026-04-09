@@ -16,8 +16,12 @@ import { ApiTestModule } from './api-test.module';
 import { testApplicationConfiguration } from '../configuration/test-application-configuration';
 
 class FakeAuthTokenVerifier implements AuthTokenVerifierInterface {
-  public verifyIdToken(): Promise<{ readonly uid: string }> {
+  public verifyIdToken(): Promise<{
+    readonly email: string;
+    readonly uid: string;
+  }> {
     return Promise.resolve({
+      email: 'destination@gmail.com',
       uid: 'user-1',
     });
   }

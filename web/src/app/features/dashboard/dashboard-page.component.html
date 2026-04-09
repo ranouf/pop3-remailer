@@ -1,0 +1,332 @@
+<div class="relative min-h-screen px-6 py-8">
+  @if (loading()) {
+    <div
+      class="dashboard-loading-overlay absolute inset-0 z-20 flex items-center justify-center rounded-[2rem]"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div class="flex flex-col items-center gap-5">
+        <div class="dashboard-spinner" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div
+          class="rounded-full border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-slate-200 backdrop-blur"
+        >
+          Syncing live operations…
+        </div>
+      </div>
+    </div>
+  }
+  <div class="mx-auto flex max-w-7xl flex-col gap-8">
+    <header
+      class="flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-slate-950/70 p-6 shadow-xl shadow-cyan-950/20 backdrop-blur lg:flex-row lg:items-end lg:justify-between"
+    >
+      <div class="space-y-3">
+        <p class="text-sm uppercase tracking-[0.24em] text-cyan-200">
+          {{ appName() }} · Live operations
+        </p>
+        <div class="space-y-2">
+          <h1 class="text-4xl font-semibold tracking-tight text-white">Transfer statistics</h1>
+          <p class="max-w-3xl text-base leading-7 text-slate-300">
+            Monitor the latest transfer activity, inspect recent failures, and confirm backend
+            health from the same authenticated view.
+          </p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="rounded-2xl border border-cyan-300/50 px-4 py-3 text-sm font-semibold text-cyan-200 transition hover:border-cyan-200 hover:text-cyan-100"
+          [disabled]="loading()"
+          (click)="reload()"
+        >
+          Refresh data
+        </button>
+        <button
+          type="button"
+          class="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:text-white"
+          (click)="signOut()"
+        >
+          Sign out
+        </button>
+      </div>
+    </header>
+
+    @if (error(); as errorMessage) {
+      <section
+        class="rounded-3xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-100"
+      >
+        {{ errorMessage }}
+      </section>
+    }
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Detected (24h)</p>
+        <p class="mt-4 text-4xl font-semibold text-white">
+          {{ statistics()?.kpis?.detectedLast24h ?? 0 | number }}
+        </p>
+      </article>
+      <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Transferred (24h)</p>
+        <p class="mt-4 text-4xl font-semibold text-emerald-300">
+          {{ statistics()?.kpis?.transferredLast24h ?? 0 | number }}
+        </p>
+      </article>
+      <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Failed (24h)</p>
+        <p class="mt-4 text-4xl font-semibold text-amber-300">
+          {{ statistics()?.kpis?.failedLast24h ?? 0 | number }}
+        </p>
+      </article>
+      <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Health</p>
+        <p
+          class="mt-4 text-2xl font-semibold"
+          [ngClass]="{
+            'text-emerald-300': healthcheck()?.overallStatus === 'healthy',
+            'text-amber-300': healthcheck()?.overallStatus !== 'healthy',
+          }"
+        >
+          {{ healthcheck()?.overallStatus ?? 'unknown' }}
+        </p>
+      </article>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <article class="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Daily throughput</p>
+            <h2 class="mt-2 text-2xl font-semibold text-white">Last recorded days</h2>
+          </div>
+          <p class="text-sm text-slate-400">
+            Generated
+            {{ statistics()?.generatedAt ? (statistics()?.generatedAt | date: 'medium') : 'n/a' }}
+          </p>
+        </div>
+
+        <div class="mt-6 space-y-4">
+          @if (statistics()?.dailyPoints?.length) {
+            <div
+              class="rounded-[1.75rem] border border-white/10 bg-slate-900/70 p-4 shadow-lg shadow-cyan-950/10"
+            >
+              <div class="h-80">
+                <canvas
+                  aria-label="Daily transfer chart"
+                  baseChart
+                  [data]="dailyChartData()"
+                  [options]="dailyChartOptions"
+                  [type]="'line'"
+                ></canvas>
+              </div>
+              <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                <span class="inline-flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1">
+                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+                  Efficient day
+                </span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1">
+                  <span class="h-2.5 w-2.5 rounded-full bg-amber-300"></span>
+                  Watch usage
+                </span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1">
+                  <span class="h-2.5 w-2.5 rounded-full bg-rose-400"></span>
+                  High resource cost
+                </span>
+              </div>
+            </div>
+
+            @for (entry of listedDailyPoints(); track entry.point.date) {
+              <div
+                class="space-y-3 rounded-[1.5rem] border p-4 transition"
+                [ngClass]="costRowClass(entry.costLevel)"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-3">
+                      <p class="text-sm font-medium text-white">
+                        {{ entry.point.date | date: 'EEEE, MMM d' }}
+                      </p>
+                      <span
+                        class="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                        [ngClass]="costBadgeClass(entry.costLevel)"
+                      >
+                        {{ costLabel(entry.costLevel) }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-400">
+                      {{ entry.point.runCount }} runs · avg
+                      {{ formatDuration(entry.point.averageDurationMs) }} · cost score
+                      {{ entry.costScore }}/100
+                    </p>
+                  </div>
+                  <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-right text-xs text-slate-300">
+                    <p>{{ entry.point.detectedCount | number }} detected</p>
+                    <p>{{ entry.point.transferredCount | number }} transferred</p>
+                    <p>{{ entry.point.failedCount | number }} error</p>
+                    <p>avg {{ formatDuration(entry.point.averageDurationMs) }}</p>
+                  </div>
+                </div>
+                <div class="grid gap-2 sm:grid-cols-4">
+                  <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Detected</p>
+                    <p class="mt-1 text-lg font-semibold text-cyan-200">
+                      {{ entry.point.detectedCount | number }}
+                    </p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                      Transferred
+                    </p>
+                    <p class="mt-1 text-lg font-semibold text-emerald-300">
+                      {{ entry.point.transferredCount | number }}
+                    </p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Error</p>
+                    <p class="mt-1 text-lg font-semibold text-rose-300">
+                      {{ entry.point.failedCount | number }}
+                    </p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                      Avg duration
+                    </p>
+                    <p class="mt-1 text-lg font-semibold text-violet-200">
+                      {{ formatDuration(entry.point.averageDurationMs) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <p class="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">
+              No daily statistics are available yet.
+            </p>
+          }
+        </div>
+      </article>
+
+      <article class="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Health checks</p>
+        <h2 class="mt-2 text-2xl font-semibold text-white">Current backend status</h2>
+        <div class="mt-6 space-y-3">
+          @for (check of healthcheck()?.checks ?? []; track check.name) {
+            <div
+              class="rounded-2xl border p-4"
+              [ngClass]="{
+                'border-emerald-400/30 bg-emerald-400/10': check.status === 'healthy',
+                'border-amber-400/30 bg-amber-400/10': check.status !== 'healthy',
+              }"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <p class="font-medium text-white">{{ check.name }}</p>
+                <span class="text-xs uppercase tracking-[0.24em] text-slate-300">
+                  {{ check.status }}
+                </span>
+              </div>
+              <p class="mt-2 text-sm text-slate-200">{{ check.message }}</p>
+            </div>
+          } @empty {
+            <p class="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">
+              No health check report available.
+            </p>
+          }
+        </div>
+      </article>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-2">
+      <article class="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Recent runs</p>
+        <h2 class="mt-2 text-2xl font-semibold text-white">Latest executions</h2>
+        <div class="mt-6 space-y-3">
+          @for (run of statistics()?.recentRuns ?? []; track run.jobId) {
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="font-medium text-white">{{ run.jobId }}</p>
+                  <p class="mt-1 text-sm text-slate-400">
+                    {{ run.startedAt | date: 'medium' }} · {{ run.provider }}
+                  </p>
+                </div>
+                <span
+                  class="rounded-full px-3 py-1 text-xs uppercase tracking-[0.24em]"
+                  [ngClass]="statusClass(run.status)"
+                >
+                  {{ run.status }}
+                </span>
+              </div>
+              <dl class="mt-4 grid gap-2 sm:grid-cols-4">
+                <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                  <dt class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Detected</dt>
+                  <dd class="mt-1 text-lg font-semibold text-cyan-200">
+                    {{ run.detectedCount | number }}
+                  </dd>
+                </div>
+                <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                  <dt class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    Transferred
+                  </dt>
+                  <dd class="mt-1 text-lg font-semibold text-emerald-300">
+                    {{ run.transferredCount | number }}
+                  </dd>
+                </div>
+                <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                  <dt class="text-[11px] uppercase tracking-[0.18em] text-slate-500">Error</dt>
+                  <dd class="mt-1 text-lg font-semibold text-rose-300">
+                    {{ run.failedCount | number }}
+                  </dd>
+                </div>
+                <div class="rounded-2xl bg-slate-950/60 px-3 py-2">
+                  <dt class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    Avg duration
+                  </dt>
+                  <dd class="mt-1 text-lg font-semibold text-violet-200">
+                    {{ formatDuration(run.durationMs) }}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          } @empty {
+            <p class="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">
+              No recent runs yet.
+            </p>
+          }
+        </div>
+      </article>
+
+      <article class="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
+        <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Recent errors</p>
+        <h2 class="mt-2 text-2xl font-semibold text-white">Attention points</h2>
+        <div class="mt-6 space-y-3">
+          @for (run of statistics()?.recentErrors ?? []; track run.jobId) {
+            <div class="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="font-medium text-white">{{ run.jobId }}</p>
+                  <p class="mt-1 text-sm text-slate-300">
+                    {{ run.startedAt | date: 'medium' }}
+                  </p>
+                </div>
+                <span class="text-xs uppercase tracking-[0.24em] text-amber-200">
+                  {{ run.status }}
+                </span>
+              </div>
+              <p class="mt-3 text-sm text-slate-200">
+                Failed {{ run.failedCount }} out of {{ run.processedCount }}
+                processed emails.
+              </p>
+            </div>
+          } @empty {
+            <p class="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">
+              No recent errors were reported.
+            </p>
+          }
+        </div>
+      </article>
+    </section>
+  </div>
+</div>
