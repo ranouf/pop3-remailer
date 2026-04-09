@@ -103,7 +103,7 @@ jobs:
           retention-days: 7
 
   test:
-    name: test
+    name: test-and-coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -119,13 +119,15 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm run test
+        run: npm run coverage
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: functions/coverage
+          path: |
+            functions/coverage
+            web/coverage
           if-no-files-found: error
           retention-days: 7
 

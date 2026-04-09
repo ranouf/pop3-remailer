@@ -1,0 +1,12 @@
+{
+  "/healthcheck": {
+    "changeOrigin": true,
+    "secure": false,
+    "target": "http://127.0.0.1:5001/pop3-remailer/europe-west1/api"
+  },
+  "/statistics": {
+    "changeOrigin": true,
+    "secure": false,
+    "target": "http://127.0.0.1:5001/pop3-remailer/europe-west1/api"
+  }
+}

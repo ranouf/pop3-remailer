@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgb(30 41 59 / 0.9), transparent 45%),
+    linear-gradient(180deg, #020617 0%, #111827 45%, #0f172a 100%);
+  color: #e2e8f0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+}
+
+.dashboard-loading-overlay {
+  background:
+    radial-gradient(circle at 30% 20%, rgb(56 189 248 / 0.15), transparent 28%),
+    radial-gradient(circle at 70% 75%, rgb(192 132 252 / 0.15), transparent 24%), rgb(2 6 23 / 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.dashboard-spinner {
+  width: 6rem;
+  height: 6rem;
+  overflow: visible;
+}
+
+.dashboard-spinner-ring {
+  fill: none;
+  stroke: rgb(56 189 248 / 0.2);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 18 82;
+  animation: dashboard-spinner-ring 1.45s linear infinite;
+}
+
+.dashboard-spinner-wave {
+  fill: none;
+  stroke: #c084fc;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 28 18;
+  animation: dashboard-spinner-wave 1.7s ease-in-out infinite;
+}
+
+.dashboard-spinner-dot {
+  fill: #34d399;
+  transform-origin: 60px 60px;
+  animation: dashboard-spinner-dot 1.15s ease-in-out infinite alternate;
+}
+
+@keyframes dashboard-spinner-ring {
+  0% {
+    stroke-dashoffset: 0;
+    transform: rotate(0deg);
+  }
+
+  100% {
+    stroke-dashoffset: -100;
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes dashboard-spinner-wave {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.72;
+    transform: rotate(-8deg) scale(0.96);
+  }
+
+  100% {
+    stroke-dashoffset: -46;
+    opacity: 1;
+    transform: rotate(8deg) scale(1.04);
+  }
+}
+
+@keyframes dashboard-spinner-dot {
+  0% {
+    transform: translateY(-4px) scale(0.84);
+  }
+
+  100% {
+    transform: translateY(4px) scale(1.08);
+  }
+}

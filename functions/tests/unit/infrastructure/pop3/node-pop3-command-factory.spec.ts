@@ -2,9 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NodePop3CommandFactory } from '../../../../src/infrastructure/email/node-pop3/client/node-pop3-command-factory';
 
-const { pop3ConstructorMock } = vi.hoisted(() => ({
-  pop3ConstructorMock: vi.fn(),
-}));
 const rawClient = {
   _connect: vi.fn(() => Promise.resolve('+OK authenticated')),
   LIST: vi.fn(() => Promise.resolve(['1', '123'])),
@@ -13,6 +10,11 @@ const rawClient = {
   UIDL: vi.fn(() => Promise.resolve(['1', 'uidl-001'])),
   connect: vi.fn(() => Promise.resolve()),
 };
+const { pop3ConstructorMock } = vi.hoisted(() => ({
+  pop3ConstructorMock: vi.fn(function Pop3CommandMock() {
+    return rawClient;
+  }),
+}));
 
 vi.mock('node-pop3', () => ({
   default: pop3ConstructorMock,
@@ -27,7 +29,9 @@ describe('infrastructure/pop3/node-pop3-command-factory', () => {
     rawClient.UIDL.mockClear();
     rawClient._connect.mockClear();
     rawClient.connect.mockClear();
-    pop3ConstructorMock.mockImplementation(() => rawClient);
+    pop3ConstructorMock.mockImplementation(function Pop3CommandMock() {
+      return rawClient;
+    });
   });
 
   it('creates a node-pop3 client with secure POP3 settings', () => {

@@ -1,4 +1,4 @@
-const { existsSync, readFileSync } = require('node:fs');
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const { join, dirname } = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
@@ -169,6 +169,7 @@ async function main() {
   const javaHome = EmulatorJavaHelper.findJavaHome();
   const projectId = EmulatorProjectHelper.getProjectId(repositoryRoot);
   const env = createProcessEnvironment(javaHome, projectId);
+  const localMode = process.argv.includes('--local');
 
   console.log(`Using JAVA_HOME=${javaHome}`);
   console.log(`Using Firebase project ${projectId}`);
@@ -190,11 +191,37 @@ async function main() {
     process.exit(buildExitCode);
   }
 
-  console.log('Starting Firebase emulators: firestore, functions, pubsub');
+  if (localMode) {
+    console.log('Building Angular web app for Firebase Hosting...');
+
+    const webBuildExitCode = await runCommand(
+      npmExecutable,
+      ['run', 'build', '--workspace', 'web'],
+      {
+        cwd: repositoryRoot,
+        env,
+      },
+    );
+
+    if (webBuildExitCode !== 0) {
+      process.exit(webBuildExitCode);
+    }
+
+    createLocalHostingConfig(repositoryRoot);
+    console.log('Starting Firebase emulators: hosting, auth, firestore, functions, pubsub');
+  } else {
+    console.log('Starting Firebase emulators: firestore, functions, pubsub');
+  }
 
   const emulatorExitCode = await runCommand(
     firebaseExecutable,
-    ['emulators:start', '--project', projectId, '--only', 'functions,firestore,pubsub'],
+    [
+      'emulators:start',
+      '--project',
+      projectId,
+      '--only',
+      localMode ? 'hosting,auth,functions,firestore,pubsub' : 'functions,firestore,pubsub',
+    ],
     {
       cwd: repositoryRoot,
       env,
@@ -202,6 +229,47 @@ async function main() {
   );
 
   process.exit(emulatorExitCode);
+}
+
+function createLocalHostingConfig(repositoryRoot) {
+  const hostingConfigPath = join(
+    repositoryRoot,
+    'web',
+    'dist',
+    'web',
+    'browser',
+    'app-config.json',
+  );
+
+  mkdirSync(dirname(hostingConfigPath), {
+    recursive: true,
+  });
+
+  writeFileSync(
+    hostingConfigPath,
+    JSON.stringify(
+      {
+        appName: 'POP3 Remailer',
+        apiBaseUrl: '',
+        authEmulatorUrl: 'http://127.0.0.1:9099',
+        firebaseConfig: createLocalFirebaseWebConfig(
+          EmulatorProjectHelper.getProjectId(repositoryRoot),
+        ),
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+function createLocalFirebaseWebConfig(projectId) {
+  return {
+    apiKey: `${projectId}-local-api-key`,
+    appId: `1:000000000000:web:${projectId.replace(/[^a-z0-9]/giu, '')}`,
+    authDomain: `${projectId}.firebaseapp.com`,
+    messagingSenderId: '000000000000',
+    projectId,
+  };
 }
 
 void main().catch((error) => {

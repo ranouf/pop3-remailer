@@ -67,6 +67,9 @@ export class ApiModule {
             container.get<AuthTokenVerifierInterface>(
               InfrastructureModule.AuthTokenVerifier,
             ),
+            container.get<ApplicationConfiguration>(
+              CoreModule.ApplicationConfiguration,
+            ),
             container.get<JobRunStatisticsManagerInterface>(
               ApiModule.JobRunStatisticsManager,
             ),
