@@ -5,6 +5,7 @@ import type { AuthTokenVerifierInterface } from '../../../src/api/auth/auth-toke
 import type { HealthCheckReportDto } from '../../../src/api/controllers/healthchecks/dtos';
 import type { JobRunStatisticsDto } from '../../../src/api/controllers/statistics/dtos/job-run-statistics.dto';
 import { OperationsApi } from '../../../src/api/program';
+import type { ApplicationConfiguration } from '../../../src/core/configuration/models/application-configuration';
 import type { HealthCheckManagerInterface } from '../../../src/core/health-check/health-check-manager.interface';
 import {
   HealthCheckName,
@@ -17,13 +18,20 @@ import {
   type JobRunStatisticsManagerInterface,
 } from '../../../src/core/job-run-statistics';
 import type { StructuredLogger } from '../../../src/core/logging/structured-logger.interface';
+import { testApplicationConfiguration } from '../../integration/api/configuration/test-application-configuration';
 
 class FakeAuthTokenVerifier implements AuthTokenVerifierInterface {
   public readonly tokens: string[] = [];
 
-  public constructor(private readonly shouldReject = false) {}
+  public constructor(
+    private readonly shouldReject = false,
+    private readonly email = 'destination@gmail.com',
+  ) {}
 
-  public verifyIdToken(token: string): Promise<{ readonly uid: string }> {
+  public verifyIdToken(token: string): Promise<{
+    readonly email: string;
+    readonly uid: string;
+  }> {
     this.tokens.push(token);
 
     if (this.shouldReject) {
@@ -31,6 +39,7 @@ class FakeAuthTokenVerifier implements AuthTokenVerifierInterface {
     }
 
     return Promise.resolve({
+      email: this.email,
       uid: 'user-1',
     });
   }
@@ -100,6 +109,7 @@ const createApi = (
 } => ({
   api: new OperationsApi(
     authTokenVerifier,
+    testApplicationConfiguration as ApplicationConfiguration,
     new FakeStatisticsManager(),
     new FakeHealthCheckManager(),
     logger,
