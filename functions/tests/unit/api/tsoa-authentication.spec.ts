@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ApiRuntimeContext } from '../../../src/api/runtime/api-runtime';
 import { expressAuthentication } from '../../../src/api/auth/tsoa-authentication';
+import { testApplicationConfiguration } from '../../integration/api/configuration/test-application-configuration';
 
 const createRequest = (
   authorizationHeader?: string,
   verifyIdToken:
-    | ((token: string) => Promise<{ readonly uid: string }>)
+    | ((
+        token: string,
+      ) => Promise<{ readonly email?: string; readonly uid: string }>)
     | undefined = undefined,
 ) =>
   ({
@@ -19,6 +22,7 @@ const createRequest = (
                 {
                   verifyIdToken,
                 },
+                testApplicationConfiguration,
                 {} as never,
                 {} as never,
                 {} as never,
@@ -51,6 +55,7 @@ describe('unit/api/tsoa-authentication', () => {
 
   it('delegates token verification to the runtime auth verifier', async () => {
     const verifyIdToken = vi.fn().mockResolvedValue({
+      email: 'destination@gmail.com',
       uid: 'user-1',
     });
 
@@ -61,6 +66,7 @@ describe('unit/api/tsoa-authentication', () => {
 
     expect(verifyIdToken).toHaveBeenCalledWith('token');
     expect(authenticatedUser).toEqual({
+      email: 'destination@gmail.com',
       uid: 'user-1',
     });
   });
