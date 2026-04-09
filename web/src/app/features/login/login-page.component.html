@@ -1,0 +1,84 @@
+<div class="min-h-screen px-6 py-12">
+  <div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+    <section class="space-y-6">
+      <p
+        class="inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm font-medium text-cyan-200"
+      >
+        {{ appName() }} · Operations portal
+      </p>
+      <div class="space-y-4">
+        <h1 class="max-w-3xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
+          Supervise POP3 imports from a clean Angular dashboard.
+        </h1>
+        <p class="max-w-2xl text-lg leading-8 text-slate-300">
+          Connect with Firebase Authentication, then inspect transfer KPIs, recent runs, and
+          infrastructure health on the same screen.
+        </p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+          <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Auth</p>
+          <p class="mt-3 text-lg font-medium text-white">Firebase Google sign-in</p>
+        </article>
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+          <p class="text-sm uppercase tracking-[0.24em] text-slate-400">API</p>
+          <p class="mt-3 text-lg font-medium text-white">Live statistics and health checks</p>
+        </article>
+        <article class="rounded-3xl border border-white/10 bg-white/5 p-5">
+          <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Hosting</p>
+          <p class="mt-3 text-lg font-medium text-white">Firebase Hosting ready</p>
+        </article>
+      </div>
+    </section>
+
+    <section
+      class="rounded-[2rem] border border-white/10 bg-slate-950/70 p-6 shadow-2xl shadow-cyan-950/20 backdrop-blur"
+    >
+      <div class="space-y-6">
+        <header class="space-y-2">
+          <p class="text-sm uppercase tracking-[0.24em] text-slate-400">Access</p>
+          <h2 class="text-2xl font-semibold text-white">Sign in to the operations dashboard</h2>
+        </header>
+
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+          <p class="font-medium text-white">Current mode</p>
+          <p class="mt-2">
+            @if (authSession.firebaseUser(); as firebaseUser) {
+              Connected as {{ firebaseUser.email ?? firebaseUser.uid }}.
+            } @else {
+              No active session yet.
+            }
+          </p>
+        </div>
+
+        @if (authSession.error(); as errorMessage) {
+          <div
+            class="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-sm text-rose-100"
+          >
+            {{ errorMessage }}
+          </div>
+        }
+
+        <div class="space-y-3">
+          <button
+            type="button"
+            class="flex w-full items-center justify-center rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            [disabled]="submitting() || !authSession.firebaseEnabled()"
+            (click)="signInWithGoogle()"
+          >
+            {{
+              authSession.firebaseEnabled()
+                ? 'Continue with Google'
+                : 'Firebase auth is unavailable in this environment'
+            }}
+          </button>
+          <p class="text-xs text-slate-500">
+            On Firebase Hosting, the app loads the Firebase web config automatically from the
+            reserved hosting endpoint. In local emulator mode, `start:local` generates an equivalent
+            config for Firebase Auth.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

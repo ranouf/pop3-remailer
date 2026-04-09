@@ -79,4 +79,23 @@ describe('integration/api/controllers/healthchecks/get-health-checks.controller'
       error: 'Forbidden',
     });
   });
+
+  it('returns forbidden when the authenticated Firebase email is not authorized', async () => {
+    const test = new GetHealthChecksControllerTest({
+      authTokenVerifier: new FakeApiAuthTokenVerifier(
+        false,
+        'cedric@carnould.com',
+      ),
+    });
+
+    const response = await ApiHttpHelper.authenticatedGet(
+      test.factory.client,
+      '/healthcheck',
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: 'Forbidden',
+    });
+  });
 });

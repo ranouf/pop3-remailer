@@ -5,6 +5,7 @@ import { GetHealthChecksController } from '../../../src/api/controllers/healthch
 import { GetStatisticsController } from '../../../src/api/controllers/statistics/get-statistics.controller';
 import { iocContainer } from '../../../src/api/bootstrap/tsoa-ioc';
 import { ApiRuntimeContext } from '../../../src/api/runtime/api-runtime';
+import { testApplicationConfiguration } from '../../integration/api/configuration/test-application-configuration';
 
 const createRequest = () => {
   const application = express();
@@ -12,9 +13,11 @@ const createRequest = () => {
     {
       verifyIdToken: () =>
         Promise.resolve({
+          email: 'destination@gmail.com',
           uid: 'user-1',
         }),
     },
+    testApplicationConfiguration,
     {
       getStatistics: () => Promise.reject(new Error('not used')),
     },

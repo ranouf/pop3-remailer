@@ -155,4 +155,23 @@ describe('integration/api/controllers/statistics/get-statistics.controller', () 
       error: 'Forbidden',
     });
   });
+
+  it('returns forbidden when the authenticated Firebase email is not authorized', async () => {
+    const test = new GetStatisticsControllerTest({
+      authTokenVerifier: new FakeApiAuthTokenVerifier(
+        false,
+        'cedric@carnould.com',
+      ),
+    });
+
+    const response = await ApiHttpHelper.authenticatedGet(
+      test.factory.client,
+      '/statistics',
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: 'Forbidden',
+    });
+  });
 });
