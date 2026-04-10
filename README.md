@@ -28,7 +28,7 @@ Firestore, and exposes operational visibility through a secured web dashboard.
 
 - POP3 messages are deduplicated by UIDL before import
 - Imported UIDL records are retained and cleaned up with a configurable policy
-- The scheduled job runs every 15 minutes
+- The scheduled job runs every hour
 - POP3 scanning is bounded and incremental to reduce unnecessary mailbox reads
 - The dashboard can only access the API when the Firebase-authenticated email
   matches the configured Gmail user email
