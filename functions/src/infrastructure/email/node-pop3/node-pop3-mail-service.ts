@@ -6,6 +6,7 @@ import {
 import type { ApplicationConfiguration } from '../../../core/configuration/models/application-configuration';
 import {
   Pop3MessageMetadata,
+  Pop3MessageReference,
   RawEmailMessage,
   type Pop3MailServiceInterface,
 } from '../../../core/email/pop3';
@@ -117,6 +118,67 @@ export class NodePop3MailService implements Pop3MailServiceInterface {
     }, sourceAccount);
   }
 
+  public async getMessageMetadata(
+    sourceAccount: SourceAccount,
+    messageNumber: number,
+  ): Promise<Pop3MessageMetadata> {
+    return this.withClient(async (client) => {
+      try {
+        const uidlResponse = await this.executeWithRetry(
+          () => client.UIDL(messageNumber),
+          {
+            fallbackError: {
+              category: JobErrorCategory.Technical,
+              code: 'POP3_LIST_FAILED',
+              details: {
+                messageNumber,
+                sourceAccountId: sourceAccount.id,
+              },
+              message: 'Failed to read POP3 UIDL for a message.',
+              retriable: true,
+            },
+            policy: this.buildRetryPolicy(),
+            isRetryable: (error) => this.isRetriablePop3Error(error),
+          },
+        );
+        const listResponse = await this.executeWithRetry(
+          () => client.LIST(messageNumber),
+          {
+            fallbackError: {
+              category: JobErrorCategory.Technical,
+              code: 'POP3_LIST_FAILED',
+              details: {
+                messageNumber,
+                sourceAccountId: sourceAccount.id,
+              },
+              message: 'Failed to read POP3 size for a message.',
+              retriable: true,
+            },
+            policy: this.buildRetryPolicy(),
+            isRetryable: (error) => this.isRetriablePop3Error(error),
+          },
+        );
+        const uidlEntry = this.responseParser.parseUidlEntry(uidlResponse);
+        const sizeEntry = this.responseParser.parseListSizeEntry(listResponse);
+
+        return new Pop3MessageMetadata({
+          messageNumber,
+          messageSize: sizeEntry.messageSize,
+          uidl: uidlEntry.uidl,
+        });
+      } catch (error) {
+        throw this.toPop3Error(error, {
+          code: 'POP3_LIST_FAILED',
+          details: {
+            messageNumber,
+            sourceAccountId: sourceAccount.id,
+          },
+          message: 'Failed to read POP3 metadata for a message.',
+        });
+      }
+    }, sourceAccount);
+  }
+
   public async listMessages(
     sourceAccount: SourceAccount,
     options: {
@@ -219,6 +281,93 @@ export class NodePop3MailService implements Pop3MailServiceInterface {
             sourceAccountId: sourceAccount.id,
           },
           message: 'Failed to list POP3 messages.',
+        });
+      }
+    }, sourceAccount);
+  }
+
+  public async listMessageReferences(
+    sourceAccount: SourceAccount,
+    options: {
+      readonly limit?: number;
+    } = {},
+  ): Promise<readonly Pop3MessageReference[]> {
+    return this.withClient(async (client) => {
+      try {
+        const requestedLimit = Math.max(
+          0,
+          Math.min(
+            options.limit ?? this.maxMessagesPerRun,
+            this.maxMessagesPerRun,
+          ),
+        );
+
+        if (requestedLimit === 0) {
+          return [];
+        }
+
+        const statResponse = await this.executeWithRetry(() => client.STAT(), {
+          fallbackError: {
+            category: JobErrorCategory.Technical,
+            code: 'POP3_LIST_FAILED',
+            details: {
+              sourceAccountId: sourceAccount.id,
+            },
+            message: 'Failed to read POP3 mailbox statistics.',
+            retriable: true,
+          },
+          policy: this.buildRetryPolicy(),
+          isRetryable: (error) => this.isRetriablePop3Error(error),
+        });
+        const totalMessageCount = this.parseMessageCount(statResponse);
+
+        if (totalMessageCount === 0) {
+          return [];
+        }
+
+        const references: Pop3MessageReference[] = [];
+
+        for (const messageNumber of this.buildRecentMessageNumbers(
+          totalMessageCount,
+          requestedLimit,
+        )) {
+          const uidlResponse = await this.executeWithRetry(
+            () => client.UIDL(messageNumber),
+            {
+              fallbackError: {
+                category: JobErrorCategory.Technical,
+                code: 'POP3_LIST_FAILED',
+                details: {
+                  messageNumber,
+                  sourceAccountId: sourceAccount.id,
+                },
+                message: 'Failed to read POP3 UIDL for a message.',
+                retriable: true,
+              },
+              policy: this.buildRetryPolicy(),
+              isRetryable: (error) => this.isRetriablePop3Error(error),
+            },
+          );
+          const uidlEntry = this.responseParser.parseUidlEntry(uidlResponse);
+
+          references.push(
+            new Pop3MessageReference({
+              messageNumber,
+              uidl: uidlEntry.uidl,
+            }),
+          );
+        }
+
+        return references.sort(
+          (left, right) => right.messageNumber - left.messageNumber,
+        );
+      } catch (error) {
+        throw this.toPop3Error(error, {
+          code: 'POP3_LIST_FAILED',
+          details: {
+            sourceAccountId: sourceAccount.id,
+          },
+          message: 'Failed to list POP3 message references.',
         });
       }
     }, sourceAccount);
