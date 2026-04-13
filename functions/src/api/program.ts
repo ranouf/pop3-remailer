@@ -80,6 +80,7 @@ export class OperationsApi {
     return onRequest(
       {
         maxInstances: OperationsApiSettings.maxInstances,
+        memory: OperationsApiSettings.memory,
         region: OperationsApiSettings.region,
         timeoutSeconds: OperationsApiSettings.timeoutSeconds,
       },
