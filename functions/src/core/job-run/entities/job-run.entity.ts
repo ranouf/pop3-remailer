@@ -101,6 +101,23 @@ export class JobRunEntity {
     });
   }
 
+  public abandon(finishedAt: Date): JobRunEntity {
+    return new JobRunEntity({
+      detectedCount: this.detectedCount,
+      durationMs: Math.max(0, finishedAt.getTime() - this.startedAt.getTime()),
+      failedCount: this.failedCount,
+      finishedAt,
+      jobId: this.jobId,
+      processedCount: this.processedCount,
+      provider: this.provider,
+      skippedCount: this.skippedCount,
+      sourceAccountId: this.sourceAccountId,
+      startedAt: this.startedAt,
+      status: JobRunStatus.Failed,
+      transferredCount: this.transferredCount,
+    });
+  }
+
   public static determineStatus(counts: JobRunCountsLike): JobRunStatus {
     JobRunEntity.assertValidCounts(counts);
 

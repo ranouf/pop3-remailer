@@ -1150,4 +1150,53 @@ describe('tests/unit/transfer-email/email-transfer-job', () => {
       ),
     ).toBe(false);
   });
+
+  it('reconciles stale running job runs before starting a new execution', async () => {
+    const analyticsTracker = new FakeAnalyticsTracker();
+    const jobRunRepository = new FakeJobRunRepository();
+    jobRunRepository.listBySourceAccountResult = [
+      JobRunEntity.createStarted({
+        jobId: 'stale-job',
+        provider: sourceAccount.provider,
+        sourceAccountId: sourceAccount.id,
+        startedAt: new Date('2026-03-31T23:30:00.000Z'),
+      }),
+    ];
+    const jobRunStatisticsManager = new FakeJobRunStatisticsManager();
+    jobRunStatisticsManager.statistics = buildStatisticsEntity();
+    const jobRunStatisticsRepository = new FakeJobRunStatisticsRepository();
+    const logger = new FakeLogger();
+    const pop3MailService = new FakePop3MailService();
+
+    const job = new EmailTransferJob(
+      config,
+      analyticsTracker,
+      new FakeGmailMailService(),
+      jobRunRepository,
+      jobRunStatisticsManager,
+      jobRunStatisticsRepository,
+      logger,
+      pop3MailService,
+      new FakeProcessedEmailRepository(),
+      buildClock(),
+    );
+
+    const result = await job.run();
+
+    expect(result.summary.status).toBe(JobRunStatus.Completed);
+    expect(jobRunRepository.finishedSummaries).toHaveLength(2);
+    expect(jobRunRepository.finishedSummaries[0]).toMatchObject({
+      durationMs: 1800000,
+      jobId: 'stale-job',
+      status: JobRunStatus.Failed,
+    });
+    expect(logger.warnCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          jobId: 'stale-job',
+          status: JobRunStatus.Failed,
+        }),
+      ]),
+    );
+  });
 });

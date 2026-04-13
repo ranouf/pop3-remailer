@@ -16,7 +16,11 @@ import { ProcessedEmailMetadata } from '../../core/email/processed-email';
 import type { ProcessedEmailRepository } from '../../core/email/processed-email/processed-email-repository.interface';
 import type { SourceAccount } from './models/source-account';
 import { Job } from './job';
-import { JobRunEntity, type JobRunRepository } from '../../core/job-run';
+import {
+  JobRunEntity,
+  JobRunStatus,
+  type JobRunRepository,
+} from '../../core/job-run';
 import type {
   JobRunStatisticsManagerInterface,
   JobRunStatisticsRepositoryInterface,
@@ -34,6 +38,7 @@ import type { JobContext } from './models/job-context';
 export class EmailTransferJob extends Job {
   private static readonly consecutiveKnownImportedMessagesBeforeStop = 10;
   private static readonly incrementalMessageScanLimit = 25;
+  private static readonly staleRunningJobThresholdMs = 15 * 60 * 1000;
   private readonly analyticsTracker: AnalyticsTrackerService;
   private readonly config: ApplicationConfiguration;
   private readonly gmailMailService: GmailMailService;
@@ -72,6 +77,9 @@ export class EmailTransferJob extends Job {
     const context = this.createJobContext();
     const sourceAccount = this.config.sourceAccount;
     let counts = this.createInitialCounts();
+
+    await this.reconcileStaleRunningJobs(context);
+
     let summary = JobRunEntity.createStarted({
       jobId: context.jobId,
       provider: sourceAccount.provider,
@@ -135,6 +143,32 @@ export class EmailTransferJob extends Job {
         },
         retriable: transferError.retriable,
         cause: transferError,
+      });
+    }
+  }
+
+  private async reconcileStaleRunningJobs(context: JobContext): Promise<void> {
+    const existingRuns = await this.jobRunRepository.listBySourceAccount(
+      this.config.sourceAccount.id,
+    );
+    const staleRunningRuns = existingRuns.filter(
+      (summary) =>
+        summary.status === JobRunStatus.Running &&
+        context.startedAt.getTime() - summary.startedAt.getTime() >=
+          EmailTransferJob.staleRunningJobThresholdMs,
+    );
+
+    for (const staleRun of staleRunningRuns) {
+      const finalizedStaleRun = staleRun.abandon(context.startedAt);
+
+      await this.jobRunRepository.saveFinished(finalizedStaleRun);
+      this.logger.warn('Reconciled stale running job run.', {
+        durationMs: finalizedStaleRun.durationMs,
+        executionTime: context.executionTime,
+        jobId: finalizedStaleRun.jobId,
+        sourceAccountId: finalizedStaleRun.sourceAccountId,
+        startedAt: finalizedStaleRun.startedAt,
+        status: finalizedStaleRun.status,
       });
     }
   }
