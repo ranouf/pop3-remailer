@@ -27,6 +27,7 @@ describe('DashboardPageComponent', () => {
           useValue: {
             getHealthcheck: vi.fn().mockReturnValue(
               of({
+                apiVersion: '0.1.0',
                 checkedAt: '2026-04-08T12:00:00.000Z',
                 checks: [
                   {
@@ -41,6 +42,7 @@ describe('DashboardPageComponent', () => {
             ),
             getStatistics: vi.fn().mockReturnValue(
               of({
+                apiVersion: '0.1.0',
                 dailyPoints: [
                   {
                     averageDurationMs: 3_600,
@@ -135,6 +137,7 @@ describe('DashboardPageComponent', () => {
     const html = fixture.nativeElement as HTMLElement;
 
     expect(html.textContent).toContain('Transfer statistics');
+    expect(html.textContent).toContain('V0.1.0');
     expect(html.textContent).toContain('12');
     expect(html.textContent).toContain('healthy');
     expect(html.textContent).toContain('job-1');

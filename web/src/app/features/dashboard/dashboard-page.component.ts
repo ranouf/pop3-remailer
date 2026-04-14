@@ -31,6 +31,9 @@ export class DashboardPageComponent {
   private readonly runtimeConfig = inject(AppRuntimeConfigService);
 
   protected readonly appName = computed(() => this.runtimeConfig.config().appName);
+  protected readonly apiVersionDisplay = computed(
+    () => this.statistics()?.apiVersion ?? this.healthcheck()?.apiVersion ?? 'unknown',
+  );
   protected readonly dailyChartData = computed<ChartData<'line'>>(() => {
     const points = this.chronologicalDailyPoints();
 
