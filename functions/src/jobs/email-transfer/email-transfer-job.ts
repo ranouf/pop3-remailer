@@ -161,16 +161,13 @@ export class EmailTransferJob extends Job {
     );
 
     for (const staleRun of staleRunningRuns) {
-      const finalizedStaleRun = staleRun.abandon(context.startedAt);
-
-      await this.jobRunRepository.saveFinished(finalizedStaleRun);
-      this.logger.warn('Reconciled stale running job run.', {
-        durationMs: finalizedStaleRun.durationMs,
+      await this.jobRunRepository.delete(staleRun.jobId);
+      this.logger.warn('Deleted stale running job run.', {
         executionTime: context.executionTime,
-        jobId: finalizedStaleRun.jobId,
-        sourceAccountId: finalizedStaleRun.sourceAccountId,
-        startedAt: finalizedStaleRun.startedAt,
-        status: finalizedStaleRun.status,
+        jobId: staleRun.jobId,
+        sourceAccountId: staleRun.sourceAccountId,
+        startedAt: staleRun.startedAt,
+        status: staleRun.status,
       });
     }
 

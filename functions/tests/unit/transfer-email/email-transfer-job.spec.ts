@@ -104,9 +104,15 @@ class FakeGmailMailService implements GmailMailService {
 }
 
 class FakeJobRunRepository implements JobRunRepository {
+  public readonly deletedJobIds: string[] = [];
   public readonly finishedSummaries: JobRunEntity[] = [];
   public listBySourceAccountResult: readonly JobRunEntity[] = [];
   public readonly startedSummaries: JobRunEntity[] = [];
+
+  public delete(jobId: string): Promise<void> {
+    this.deletedJobIds.push(jobId);
+    return Promise.resolve();
+  }
 
   public listBySourceAccount(): Promise<readonly JobRunEntity[]> {
     return Promise.resolve(this.listBySourceAccountResult);
@@ -1151,7 +1157,7 @@ describe('tests/unit/transfer-email/email-transfer-job', () => {
     ).toBe(false);
   });
 
-  it('reconciles stale running job runs before starting a new execution', async () => {
+  it('deletes stale running job runs before starting a new execution', async () => {
     const analyticsTracker = new FakeAnalyticsTracker();
     const jobRunRepository = new FakeJobRunRepository();
     jobRunRepository.listBySourceAccountResult = [
@@ -1184,18 +1190,14 @@ describe('tests/unit/transfer-email/email-transfer-job', () => {
     const result = await job.run();
 
     expect(result.summary.status).toBe(JobRunStatus.Completed);
-    expect(jobRunRepository.finishedSummaries).toHaveLength(2);
-    expect(jobRunRepository.finishedSummaries[0]).toMatchObject({
-      durationMs: 1800000,
-      jobId: 'stale-job',
-      status: JobRunStatus.Failed,
-    });
+    expect(jobRunRepository.deletedJobIds).toEqual(['stale-job']);
+    expect(jobRunRepository.finishedSummaries).toHaveLength(1);
     expect(jobRunStatisticsRepository.savedStatistics).toHaveLength(1);
     expect(logger.warnCalls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           jobId: 'stale-job',
-          status: JobRunStatus.Failed,
+          status: JobRunStatus.Running,
         }),
       ]),
     );

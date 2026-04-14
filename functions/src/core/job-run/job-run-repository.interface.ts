@@ -1,6 +1,7 @@
 import type { JobRunEntity } from './index';
 
 export interface JobRunRepository {
+  delete(jobId: string): Promise<void>;
   listBySourceAccount(
     sourceAccountId: string,
   ): Promise<readonly JobRunEntity[]>;

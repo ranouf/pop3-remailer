@@ -9,6 +9,10 @@ import { JobRunStatisticsManager } from '../../../src/core/job-run-statistics';
 import { SourceProvider } from '../../../src/jobs/email-transfer/models/source-account';
 
 class FakeJobRunRepository implements JobRunRepository {
+  public delete(): Promise<void> {
+    return Promise.resolve();
+  }
+
   public listBySourceAccount(): Promise<readonly JobRunEntity[]> {
     return Promise.resolve([
       new JobRunEntity({
