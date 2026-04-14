@@ -78,7 +78,7 @@ export class EmailTransferJob extends Job {
     const sourceAccount = this.config.sourceAccount;
     let counts = this.createInitialCounts();
 
-    await this.reconcileStaleRunningJobs(context);
+    const reconciledStaleRuns = await this.reconcileStaleRunningJobs(context);
 
     let summary = JobRunEntity.createStarted({
       jobId: context.jobId,
@@ -107,7 +107,7 @@ export class EmailTransferJob extends Job {
 
       summary = await this.completeJob(summary, context, counts);
 
-      if (this.shouldRunPostProcessing(counts)) {
+      if (this.shouldRefreshStatisticsProjection(counts, reconciledStaleRuns)) {
         await this.refreshStatisticsProjection(context);
       }
 
@@ -125,7 +125,7 @@ export class EmailTransferJob extends Job {
       });
       summary = await this.completeJob(summary, context, counts);
 
-      if (this.shouldRunPostProcessing(counts)) {
+      if (this.shouldRefreshStatisticsProjection(counts, reconciledStaleRuns)) {
         await this.refreshStatisticsProjection(context);
       }
 
@@ -147,7 +147,9 @@ export class EmailTransferJob extends Job {
     }
   }
 
-  private async reconcileStaleRunningJobs(context: JobContext): Promise<void> {
+  private async reconcileStaleRunningJobs(
+    context: JobContext,
+  ): Promise<boolean> {
     const existingRuns = await this.jobRunRepository.listBySourceAccount(
       this.config.sourceAccount.id,
     );
@@ -171,6 +173,8 @@ export class EmailTransferJob extends Job {
         status: finalizedStaleRun.status,
       });
     }
+
+    return staleRunningRuns.length > 0;
   }
 
   private async completeJob(
@@ -595,6 +599,13 @@ export class EmailTransferJob extends Job {
 
   private shouldRunPostProcessing(counts: EmailTransferJobCounts): boolean {
     return counts.processedCount > 0;
+  }
+
+  private shouldRefreshStatisticsProjection(
+    counts: EmailTransferJobCounts,
+    reconciledStaleRuns: boolean,
+  ): boolean {
+    return this.shouldRunPostProcessing(counts) || reconciledStaleRuns;
   }
 
   private withDetectedCount(

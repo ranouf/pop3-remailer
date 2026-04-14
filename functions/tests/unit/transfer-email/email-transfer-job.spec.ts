@@ -1190,6 +1190,7 @@ describe('tests/unit/transfer-email/email-transfer-job', () => {
       jobId: 'stale-job',
       status: JobRunStatus.Failed,
     });
+    expect(jobRunStatisticsRepository.savedStatistics).toHaveLength(1);
     expect(logger.warnCalls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1198,5 +1199,31 @@ describe('tests/unit/transfer-email/email-transfer-job', () => {
         }),
       ]),
     );
+  });
+
+  it('does not refresh the statistics projection after a no-op run with no stale executions to reconcile', async () => {
+    const analyticsTracker = new FakeAnalyticsTracker();
+    const jobRunRepository = new FakeJobRunRepository();
+    const jobRunStatisticsManager = new FakeJobRunStatisticsManager();
+    jobRunStatisticsManager.statistics = buildStatisticsEntity();
+    const jobRunStatisticsRepository = new FakeJobRunStatisticsRepository();
+
+    const job = new EmailTransferJob(
+      config,
+      analyticsTracker,
+      new FakeGmailMailService(),
+      jobRunRepository,
+      jobRunStatisticsManager,
+      jobRunStatisticsRepository,
+      new FakeLogger(),
+      new FakePop3MailService(),
+      new FakeProcessedEmailRepository(),
+      buildClock(),
+    );
+
+    const result = await job.run();
+
+    expect(result.summary.status).toBe(JobRunStatus.Completed);
+    expect(jobRunStatisticsRepository.savedStatistics).toHaveLength(0);
   });
 });
