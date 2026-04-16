@@ -1,4 +1,7 @@
-import { onSchedule } from 'firebase-functions/v2/scheduler';
+import {
+  onSchedule,
+  type ScheduleOptions,
+} from 'firebase-functions/v2/scheduler';
 
 import { ConfigurationManager } from '../../core/configuration/configuration-manager';
 import type { ConfigurationManagerInterface } from '../../core/configuration/configuration-manager.interface';
@@ -46,13 +49,7 @@ export class EmailTransferFunction {
   }
 
   // Builds the Firebase Scheduler configuration for the recurring email transfer job.
-  public createScheduleOptions(): {
-    readonly maxInstances: number;
-    readonly memory: string;
-    readonly region: string;
-    readonly schedule: string;
-    readonly timeoutSeconds: number;
-  } {
+  public createScheduleOptions(): ScheduleOptions {
     return {
       maxInstances: EmailTransferFunction.maxInstances,
       memory: EmailTransferFunction.memory,
