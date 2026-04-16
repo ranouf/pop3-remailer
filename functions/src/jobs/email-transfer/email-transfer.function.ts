@@ -10,6 +10,7 @@ import { EmailTransferModule } from './email-transfer.module';
 
 export class EmailTransferFunction {
   public static readonly maxInstances = 1;
+  public static readonly memory = '512MiB';
   public static readonly region = 'europe-west1';
   public static readonly timeoutSeconds = 60;
 
@@ -47,12 +48,14 @@ export class EmailTransferFunction {
   // Builds the Firebase Scheduler configuration for the recurring email transfer job.
   public createScheduleOptions(): {
     readonly maxInstances: number;
+    readonly memory: string;
     readonly region: string;
     readonly schedule: string;
     readonly timeoutSeconds: number;
   } {
     return {
       maxInstances: EmailTransferFunction.maxInstances,
+      memory: EmailTransferFunction.memory,
       region: EmailTransferFunction.region,
       schedule: ConfigurationManager.scheduledTransferCron,
       timeoutSeconds: EmailTransferFunction.timeoutSeconds,
