@@ -10,12 +10,17 @@ import { EmailMessageHelper } from '../../core/email';
 import {
   type Pop3MailServiceInterface,
   type Pop3MessageMetadata,
+  type Pop3MessageReference,
 } from '../../core/email/pop3';
 import { ProcessedEmailMetadata } from '../../core/email/processed-email';
 import type { ProcessedEmailRepository } from '../../core/email/processed-email/processed-email-repository.interface';
 import type { SourceAccount } from './models/source-account';
 import { Job } from './job';
-import { JobRunEntity, type JobRunRepository } from '../../core/job-run';
+import {
+  JobRunEntity,
+  JobRunStatus,
+  type JobRunRepository,
+} from '../../core/job-run';
 import type {
   JobRunStatisticsManagerInterface,
   JobRunStatisticsRepositoryInterface,
@@ -33,6 +38,7 @@ import type { JobContext } from './models/job-context';
 export class EmailTransferJob extends Job {
   private static readonly consecutiveKnownImportedMessagesBeforeStop = 10;
   private static readonly incrementalMessageScanLimit = 25;
+  private static readonly staleRunningJobThresholdMs = 15 * 60 * 1000;
   private readonly analyticsTracker: AnalyticsTrackerService;
   private readonly config: ApplicationConfiguration;
   private readonly gmailMailService: GmailMailService;
@@ -71,6 +77,9 @@ export class EmailTransferJob extends Job {
     const context = this.createJobContext();
     const sourceAccount = this.config.sourceAccount;
     let counts = this.createInitialCounts();
+
+    const reconciledStaleRuns = await this.reconcileStaleRunningJobs(context);
+
     let summary = JobRunEntity.createStarted({
       jobId: context.jobId,
       provider: sourceAccount.provider,
@@ -92,10 +101,15 @@ export class EmailTransferJob extends Job {
         counts = await this.processMessage(message, context, counts);
       }
 
-      await this.cleanupImportedRecords(context);
+      if (this.shouldRunPostProcessing(counts)) {
+        await this.cleanupImportedRecords(context);
+      }
 
       summary = await this.completeJob(summary, context, counts);
-      await this.refreshStatisticsProjection(context);
+
+      if (this.shouldRefreshStatisticsProjection(counts, reconciledStaleRuns)) {
+        await this.refreshStatisticsProjection(context);
+      }
 
       return {
         summary,
@@ -110,7 +124,10 @@ export class EmailTransferJob extends Job {
         message: 'The email transfer job failed.',
       });
       summary = await this.completeJob(summary, context, counts);
-      await this.refreshStatisticsProjection(context);
+
+      if (this.shouldRefreshStatisticsProjection(counts, reconciledStaleRuns)) {
+        await this.refreshStatisticsProjection(context);
+      }
 
       throw new TransferJobError(transferError.message, {
         category:
@@ -128,6 +145,33 @@ export class EmailTransferJob extends Job {
         cause: transferError,
       });
     }
+  }
+
+  private async reconcileStaleRunningJobs(
+    context: JobContext,
+  ): Promise<boolean> {
+    const existingRuns = await this.jobRunRepository.listBySourceAccount(
+      this.config.sourceAccount.id,
+    );
+    const staleRunningRuns = existingRuns.filter(
+      (summary) =>
+        summary.status === JobRunStatus.Running &&
+        context.startedAt.getTime() - summary.startedAt.getTime() >=
+          EmailTransferJob.staleRunningJobThresholdMs,
+    );
+
+    for (const staleRun of staleRunningRuns) {
+      await this.jobRunRepository.delete(staleRun.jobId);
+      this.logger.warn('Deleted stale running job run.', {
+        executionTime: context.executionTime,
+        jobId: staleRun.jobId,
+        sourceAccountId: staleRun.sourceAccountId,
+        startedAt: staleRun.startedAt,
+        status: staleRun.status,
+      });
+    }
+
+    return staleRunningRuns.length > 0;
   }
 
   private async completeJob(
@@ -302,15 +346,21 @@ export class EmailTransferJob extends Job {
             EmailTransferJob.incrementalMessageScanLimit,
           )
         : this.config.job.maxMessagesPerRun;
-      const messages = await this.pop3MailService.listMessages(sourceAccount, {
-        limit: scanLimit,
-      });
 
       if (!hasPriorRuns) {
-        return messages;
+        return this.pop3MailService.listMessages(sourceAccount, {
+          limit: scanLimit,
+        });
       }
 
-      return this.filterIncrementalMessages(messages, context);
+      const references = await this.pop3MailService.listMessageReferences(
+        sourceAccount,
+        {
+          limit: scanLimit,
+        },
+      );
+
+      return this.filterIncrementalMessages(references, context);
     } catch (error) {
       const transferError = this.toJobError(error, {
         code: 'POP3_LIST_FAILED',
@@ -333,16 +383,20 @@ export class EmailTransferJob extends Job {
   }
 
   private async filterIncrementalMessages(
-    messages: readonly Pop3MessageMetadata[],
+    references: readonly Pop3MessageReference[],
     context: JobContext,
   ): Promise<readonly Pop3MessageMetadata[]> {
     const filteredMessages: Pop3MessageMetadata[] = [];
+    const processedEmailsByUidl =
+      await this.processedEmailRepository.findByUidls(
+        this.config.sourceAccount.id,
+        references.map((reference) => reference.uidl),
+      );
     let consecutiveKnownImportedMessages = 0;
 
-    for (const message of messages) {
-      const processedEmail = await this.processedEmailRepository.findByUidl(
-        this.config.sourceAccount.id,
-        message.uidl,
+    for (const reference of references) {
+      const processedEmail = processedEmailsByUidl.get(
+        reference.uidl.toString(),
       );
 
       if (processedEmail?.isImported() === true) {
@@ -359,7 +413,7 @@ export class EmailTransferJob extends Job {
               executionTime: context.executionTime,
               jobId: context.jobId,
               sourceAccountId: this.config.sourceAccount.id,
-              stoppedAtMessageNumber: message.messageNumber,
+              stoppedAtMessageNumber: reference.messageNumber,
             },
           );
 
@@ -370,7 +424,12 @@ export class EmailTransferJob extends Job {
       }
 
       consecutiveKnownImportedMessages = 0;
-      filteredMessages.push(message);
+      filteredMessages.push(
+        await this.pop3MailService.getMessageMetadata(
+          this.config.sourceAccount,
+          reference.messageNumber,
+        ),
+      );
     }
 
     return filteredMessages;
@@ -533,6 +592,17 @@ export class EmailTransferJob extends Job {
       skippedCount: counts.skippedCount,
       transferredCount: counts.transferredCount + 1,
     };
+  }
+
+  private shouldRunPostProcessing(counts: EmailTransferJobCounts): boolean {
+    return counts.processedCount > 0;
+  }
+
+  private shouldRefreshStatisticsProjection(
+    counts: EmailTransferJobCounts,
+    reconciledStaleRuns: boolean,
+  ): boolean {
+    return this.shouldRunPostProcessing(counts) || reconciledStaleRuns;
   }
 
   private withDetectedCount(

@@ -136,6 +136,7 @@ describe('unit/api/program', () => {
     const body = response.body as JobRunStatisticsDto;
 
     expect(response.status).toBe(200);
+    expect(body.apiVersion).toBe('0.1.0');
     expect(body.kpis.detectedLast24h).toBe(1);
     expect(authTokenVerifier.tokens).toEqual(['token']);
   });
@@ -149,6 +150,7 @@ describe('unit/api/program', () => {
     const body = response.body as HealthCheckReportDto;
 
     expect(response.status).toBe(200);
+    expect(body.apiVersion).toBe('0.1.0');
     expect(body.overallStatus).toBe('healthy');
   });
 

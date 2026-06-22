@@ -31,7 +31,7 @@ const config: ApplicationConfiguration = {
   },
   job: {
     maxMessagesPerRun: 50,
-    schedule: 'every 15 minutes',
+    schedule: 'every 60 minutes',
     uidlCleanup: {
       cleanupBatchSize: 250,
       minimumRetainedCount: 100,

@@ -3,7 +3,7 @@ import { DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { Router } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import type { ChartData, ChartOptions, TooltipItem } from 'chart.js';
-import { firstValueFrom, forkJoin } from 'rxjs';
+import { catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import { OperationsApiService } from '../../core/api/operations-api.service';
 import type {
   HealthCheckReportResponse,
@@ -31,6 +31,9 @@ export class DashboardPageComponent {
   private readonly runtimeConfig = inject(AppRuntimeConfigService);
 
   protected readonly appName = computed(() => this.runtimeConfig.config().appName);
+  protected readonly apiVersionDisplay = computed(
+    () => this.statistics()?.apiVersion ?? this.healthcheck()?.apiVersion ?? 'unknown',
+  );
   protected readonly dailyChartData = computed<ChartData<'line'>>(() => {
     const points = this.chronologicalDailyPoints();
 
@@ -192,8 +195,10 @@ export class DashboardPageComponent {
     },
   };
   protected readonly error = signal<string | null>(null);
+  protected readonly healthcheckError = signal<string | null>(null);
   protected readonly healthcheck = signal<HealthCheckReportResponse | null>(null);
   protected readonly loading = signal(true);
+  protected readonly statisticsError = signal<string | null>(null);
   protected readonly statistics = signal<JobRunStatisticsResponse | null>(null);
   protected readonly listedDailyPoints = computed(() =>
     [...(this.statistics()?.dailyPoints ?? [])]
@@ -212,19 +217,32 @@ export class DashboardPageComponent {
   protected async reload(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
+    this.statisticsError.set(null);
+    this.healthcheckError.set(null);
 
-    try {
-      const [statistics, healthcheck] = await firstValueFrom(
-        forkJoin([this.api.getStatistics(), this.api.getHealthcheck()]),
-      );
+    const result = await firstValueFrom(
+      forkJoin({
+        healthcheck: this.api.getHealthcheck().pipe(
+          map((value) => ({ error: null, value })),
+          catchError((error: unknown) => of({ error: readErrorMessage(error), value: null })),
+        ),
+        statistics: this.api.getStatistics().pipe(
+          map((value) => ({ error: null, value })),
+          catchError((error: unknown) => of({ error: readErrorMessage(error), value: null })),
+        ),
+      }),
+    );
 
-      this.statistics.set(statistics);
-      this.healthcheck.set(healthcheck);
-    } catch (error) {
-      this.error.set(readErrorMessage(error));
-    } finally {
-      this.loading.set(false);
+    this.statistics.set(result.statistics.value);
+    this.statisticsError.set(result.statistics.error);
+    this.healthcheck.set(result.healthcheck.value);
+    this.healthcheckError.set(result.healthcheck.error);
+
+    if (this.statisticsError() !== null && this.healthcheckError() !== null) {
+      this.error.set(this.statisticsError() ?? this.healthcheckError());
     }
+
+    this.loading.set(false);
   }
 
   protected formatDuration(durationMs: number | null | undefined): string {

@@ -6,7 +6,7 @@ import { ConfigurationManagerHelper } from './helpers/configuration-manager.help
 
 describe('core/configuration/configuration-manager runtime constants', () => {
   it('exposes runtime constants', () => {
-    expect(ConfigurationManager.scheduledTransferCron).toBe('every 15 minutes');
+    expect(ConfigurationManager.scheduledTransferCron).toBe('every 60 minutes');
   });
 });
 
@@ -32,7 +32,7 @@ describe('core/configuration/configuration-manager', () => {
       },
       job: {
         maxMessagesPerRun: 100,
-        schedule: 'every 15 minutes',
+        schedule: 'every 60 minutes',
         uidlCleanup: {
           cleanupBatchSize: 250,
           minimumRetainedCount: 100,

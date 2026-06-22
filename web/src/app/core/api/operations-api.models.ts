@@ -1,4 +1,5 @@
 export interface JobRunStatisticsResponse {
+  readonly apiVersion: string;
   readonly dailyPoints: readonly JobRunStatisticsDailyPointResponse[];
   readonly generatedAt: string;
   readonly kpis: JobRunStatisticsKpisResponse;
@@ -40,6 +41,7 @@ export interface RunSummaryResponse {
 }
 
 export interface HealthCheckReportResponse {
+  readonly apiVersion: string;
   readonly checkedAt: string;
   readonly checks: readonly HealthCheckResultResponse[];
   readonly overallStatus: string;

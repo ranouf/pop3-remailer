@@ -112,4 +112,28 @@ describe('domain/job-run', () => {
       transferredCount: 1,
     });
   });
+
+  it('can abandon a stale running job summary as failed', () => {
+    const summary = JobRunEntity.createStarted({
+      jobId: 'job-3',
+      provider: SourceProvider.Orange,
+      sourceAccountId: 'orange:user@example.com',
+      startedAt: new Date('2026-03-31T20:00:00.000Z'),
+    });
+
+    expect(summary.abandon(new Date('2026-03-31T20:15:00.000Z'))).toEqual({
+      detectedCount: 0,
+      durationMs: 900000,
+      failedCount: 0,
+      finishedAt: new Date('2026-03-31T20:15:00.000Z'),
+      jobId: 'job-3',
+      processedCount: 0,
+      provider: SourceProvider.Orange,
+      skippedCount: 0,
+      sourceAccountId: 'orange:user@example.com',
+      startedAt: new Date('2026-03-31T20:00:00.000Z'),
+      status: JobRunStatus.Failed,
+      transferredCount: 0,
+    });
+  });
 });

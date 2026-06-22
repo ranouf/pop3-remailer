@@ -1,4 +1,5 @@
 export class JobRunStatisticsDailyAccumulator {
+  private durationCount = 0;
   private durationTotalMs = 0;
   private readonly point: {
     averageDurationMs: number | null;
@@ -32,13 +33,13 @@ export class JobRunStatisticsDailyAccumulator {
     this.point.transferredCount += run.transferredCount;
 
     if (run.durationMs === undefined) {
-      this.point.averageDurationMs = null;
       return;
     }
 
+    this.durationCount += 1;
     this.durationTotalMs += run.durationMs;
     this.point.averageDurationMs = Math.round(
-      this.durationTotalMs / this.point.runCount,
+      this.durationTotalMs / this.durationCount,
     );
   }
 

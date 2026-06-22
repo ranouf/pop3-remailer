@@ -9,6 +9,7 @@ describe('unit/transfer-email/email-transfer.function scheduler', () => {
 
     expect(functionInstance.createScheduleOptions()).toEqual({
       maxInstances: 1,
+      memory: '512MiB',
       region: 'europe-west1',
       schedule: ConfigurationManager.scheduledTransferCron,
       timeoutSeconds: 60,

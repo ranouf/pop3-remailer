@@ -130,7 +130,7 @@ describe('integration/transfer-email/functions/email-transfer.function', () => {
     expect(jobRuns).toHaveLength(1);
     expect(jobRuns[0]?.detectedCount).toBe(0);
     expect(gmailClient?.importedMessages ?? []).toHaveLength(0);
-    expect(statistics?.kpis.detectedLast24h).toBe(0);
+    expect(statistics).toBeNull();
   });
 
   it('skips a POP3 email that has already been imported', async () => {
@@ -168,6 +168,6 @@ describe('integration/transfer-email/functions/email-transfer.function', () => {
     expect(processedEmail?.status).toBe(EmailRecordStatus.Imported);
     expect(processedEmail?.gmailMessageId).toBe('existing-gmail-message-id');
     expect(gmailClient?.importedMessages ?? []).toHaveLength(0);
-    expect(statistics?.kpis.lastRun?.skippedCount).toBe(0);
+    expect(statistics).toBeNull();
   });
 });

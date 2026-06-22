@@ -34,7 +34,7 @@ The platform now includes:
   then truncates it
 - Added incremental stop heuristics to reduce repeated processing of already
   known messages
-- Reduced scheduled execution frequency to every 15 minutes and constrained the
+- Reduced scheduled execution frequency to every hour and constrained the
   backend to safer runtime limits
 - Unified the monorepo quality gates with ESLint, Prettier, TypeScript, Vitest,
   and a 90% minimum coverage threshold

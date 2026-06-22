@@ -74,6 +74,7 @@ describe('unit/api/program.createHandler', () => {
     expect(mocks.onRequest).toHaveBeenCalledWith(
       {
         maxInstances: OperationsApiSettings.maxInstances,
+        memory: OperationsApiSettings.memory,
         region: OperationsApiSettings.region,
         timeoutSeconds: OperationsApiSettings.timeoutSeconds,
       },

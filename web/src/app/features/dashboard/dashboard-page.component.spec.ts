@@ -27,6 +27,7 @@ describe('DashboardPageComponent', () => {
           useValue: {
             getHealthcheck: vi.fn().mockReturnValue(
               of({
+                apiVersion: '0.1.0',
                 checkedAt: '2026-04-08T12:00:00.000Z',
                 checks: [
                   {
@@ -41,6 +42,7 @@ describe('DashboardPageComponent', () => {
             ),
             getStatistics: vi.fn().mockReturnValue(
               of({
+                apiVersion: '0.1.0',
                 dailyPoints: [
                   {
                     averageDurationMs: 3_600,
@@ -135,6 +137,7 @@ describe('DashboardPageComponent', () => {
     const html = fixture.nativeElement as HTMLElement;
 
     expect(html.textContent).toContain('Transfer statistics');
+    expect(html.textContent).toContain('V0.1.0');
     expect(html.textContent).toContain('12');
     expect(html.textContent).toContain('healthy');
     expect(html.textContent).toContain('job-1');
@@ -219,6 +222,140 @@ describe('DashboardPageComponent', () => {
     const html = fixture.nativeElement as HTMLElement;
 
     expect(html.textContent).toContain('Backend unavailable');
+  });
+
+  it('keeps statistics visible when only the healthcheck call fails', async () => {
+    await TestBed.configureTestingModule({
+      imports: [DashboardPageComponent],
+      providers: [
+        provideCharts(withDefaultRegisterables()),
+        {
+          provide: OperationsApiService,
+          useValue: {
+            getHealthcheck: vi
+              .fn()
+              .mockReturnValue(throwError(() => new Error('Healthcheck unavailable'))),
+            getStatistics: vi.fn().mockReturnValue(
+              of({
+                dailyPoints: [],
+                generatedAt: '2026-04-08T12:00:00.000Z',
+                kpis: {
+                  detectedLast24h: 12,
+                  failedLast24h: 1,
+                  lastError: null,
+                  lastRun: null,
+                  lastSuccess: null,
+                  transferredLast24h: 10,
+                },
+                recentErrors: [],
+                recentRuns: [],
+              }),
+            ),
+          },
+        },
+        {
+          provide: AuthSessionService,
+          useValue: {
+            signOut: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: Router,
+          useValue: {
+            navigateByUrl: vi.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: AppRuntimeConfigService,
+          useValue: {
+            config: signal({
+              apiBaseUrl: '',
+              appName: 'POP3 Remailer',
+              firebaseConfig: null,
+            }).asReadonly(),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DashboardPageComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const html = fixture.nativeElement as HTMLElement;
+
+    expect(html.textContent).toContain('12');
+    expect(html.textContent).toContain('10');
+    expect(html.textContent).toContain('Healthcheck unavailable');
+    expect(html.textContent).not.toContain('The dashboard could not load the latest data.');
+  });
+
+  it('keeps healthcheck visible when only the statistics call fails', async () => {
+    await TestBed.configureTestingModule({
+      imports: [DashboardPageComponent],
+      providers: [
+        provideCharts(withDefaultRegisterables()),
+        {
+          provide: OperationsApiService,
+          useValue: {
+            getHealthcheck: vi.fn().mockReturnValue(
+              of({
+                checkedAt: '2026-04-08T12:00:00.000Z',
+                checks: [
+                  {
+                    checkedAt: '2026-04-08T12:00:00.000Z',
+                    message: 'POP3 reachable',
+                    name: 'pop3',
+                    status: 'healthy',
+                  },
+                ],
+                overallStatus: 'healthy',
+              }),
+            ),
+            getStatistics: vi
+              .fn()
+              .mockReturnValue(throwError(() => new Error('Statistics unavailable'))),
+          },
+        },
+        {
+          provide: AuthSessionService,
+          useValue: {
+            signOut: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: Router,
+          useValue: {
+            navigateByUrl: vi.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: AppRuntimeConfigService,
+          useValue: {
+            config: signal({
+              apiBaseUrl: '',
+              appName: 'POP3 Remailer',
+              firebaseConfig: null,
+            }).asReadonly(),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DashboardPageComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const html = fixture.nativeElement as HTMLElement;
+
+    expect(html.textContent).toContain('POP3 reachable');
+    expect(html.textContent).toContain('healthy');
+    expect(html.textContent).toContain('Statistics unavailable');
+    expect(html.textContent).not.toContain('The dashboard could not load the latest data.');
   });
 
   it('falls back to the default dashboard error message for non-Error failures', async () => {

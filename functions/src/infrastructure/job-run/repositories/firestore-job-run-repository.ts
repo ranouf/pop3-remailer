@@ -17,6 +17,10 @@ export class FirestoreJobRunRepository implements JobRunRepository {
     this.database = database;
   }
 
+  public async delete(jobId: string): Promise<void> {
+    await this.database.collection(jobRunsCollectionName).doc(jobId).delete();
+  }
+
   public async saveFinished(summary: JobRunEntity): Promise<void> {
     await this.database
       .collection(jobRunsCollectionName)

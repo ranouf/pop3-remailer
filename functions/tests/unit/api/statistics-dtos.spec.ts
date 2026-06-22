@@ -45,8 +45,12 @@ describe('unit/api/statistics-dtos', () => {
         [],
         [],
       ),
+      {
+        version: '0.1.0',
+      },
     );
 
+    expect(dto.apiVersion).toBe('0.1.0');
     expect(dto.kpis.detectedLast24h).toBe(2);
     expect(dto.dailyPoints).toHaveLength(1);
     expect(dto.dailyPoints[0]?.runCount).toBe(1);

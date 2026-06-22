@@ -25,6 +25,10 @@ export interface ProcessedEmailRepository {
     sourceAccountId: string,
     uidl: Uidl,
   ): Promise<ProcessedEmailEntity | null>;
+  findByUidls(
+    sourceAccountId: string,
+    uidls: readonly Uidl[],
+  ): Promise<ReadonlyMap<string, ProcessedEmailEntity>>;
   markFailed(params: {
     readonly jobId: string;
     readonly sourceAccountId: string;

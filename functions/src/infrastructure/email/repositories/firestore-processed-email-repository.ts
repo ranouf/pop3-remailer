@@ -10,7 +10,7 @@ import {
   UidlClaimStatus,
 } from '../../../core/email/processed-email';
 import type { SourceAccount } from '../../../jobs/email-transfer/models/source-account';
-import type { Uidl } from '../../../core/email/uidl';
+import { Uidl } from '../../../core/email/uidl';
 import {
   toProcessedEmailEntity,
   toStoredProcessedEmailEntity,
@@ -183,6 +183,42 @@ export class FirestoreProcessedEmailRepository implements ProcessedEmailReposito
     return toProcessedEmailEntity(
       snapshot.data() as StoredProcessedEmailEntity,
     );
+  }
+
+  public async findByUidls(
+    sourceAccountId: string,
+    uidls: readonly Uidl[],
+  ): Promise<ReadonlyMap<string, ProcessedEmailEntity>> {
+    const uniqueUidls = [...new Set(uidls.map((uidl) => uidl.toString()))];
+
+    if (uniqueUidls.length === 0) {
+      return new Map();
+    }
+
+    const snapshots = await Promise.all(
+      uniqueUidls.map((uidl) =>
+        this.getCollection()
+          .doc(
+            createProcessedEmailDocumentId(sourceAccountId, Uidl.create(uidl)),
+          )
+          .get(),
+      ),
+    );
+    const entities = new Map<string, ProcessedEmailEntity>();
+
+    for (const snapshot of snapshots) {
+      if (!snapshot.exists) {
+        continue;
+      }
+
+      const entity = toProcessedEmailEntity(
+        snapshot.data() as StoredProcessedEmailEntity,
+      );
+
+      entities.set(entity.uidl.toString(), entity);
+    }
+
+    return entities;
   }
 
   public async markFailed(params: {
