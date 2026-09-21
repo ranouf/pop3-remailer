@@ -22,8 +22,6 @@ src/jobs/IMAPRemailer.Jobs/appsettings.Development.json
 src/jobs/**/bin/
 src/jobs/**/obj/
 src/jobs/data/
-src/tests/**/bin/
-src/tests/**/obj/
 *.csproj.user
 coverage/
 *.log

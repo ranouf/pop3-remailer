@@ -37,13 +37,13 @@ jobs:
         run: dotnet tool restore
 
       - name: Check C# formatting
-        run: dotnet csharpier check src/jobs src/tests
+        run: dotnet csharpier check src/jobs
 
       - name: Build with analyzers
         run: dotnet build src/jobs/IMAPRemailer.sln --no-restore --configuration Release /warnaserror
 
       - name: Run .NET tests with coverage
-        run: dotnet test src/jobs/IMAPRemailer.sln --no-restore --configuration Release --collect:"XPlat Code Coverage" --settings src/tests/coverage.runsettings --results-directory .codex/coverage
+        run: dotnet test src/jobs/IMAPRemailer.sln --no-restore --configuration Release --collect:"XPlat Code Coverage" --settings src/jobs/coverage.runsettings --results-directory .codex/coverage
 
       - name: Require complete useful-code coverage
         shell: pwsh

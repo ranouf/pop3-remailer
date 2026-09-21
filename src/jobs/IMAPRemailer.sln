@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IMAPRemailer.Core", "IMAPRe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IMAPRemailer.Infrastructure", "IMAPRemailer.Infrastructure\IMAPRemailer.Infrastructure.csproj", "{23ECFF8A-3C4D-469F-AC45-27563196B9BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IMAPRemailer.Jobs.Tests", "..\tests\IMAPRemailer.Jobs.Tests\IMAPRemailer.Jobs.Tests.csproj", "{1D525C55-20C2-4285-B0F7-D3AEA1D2F673}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IMAPRemailer.Jobs.Tests", "IMAPRemailer.Jobs.Tests\IMAPRemailer.Jobs.Tests.csproj", "{1D525C55-20C2-4285-B0F7-D3AEA1D2F673}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IMAPRemailer.Tray", "IMAPRemailer.Tray\IMAPRemailer.Tray.csproj", "{B0DD8423-73F2-4F62-9A6E-8F3E439029FB}"
 EndProject

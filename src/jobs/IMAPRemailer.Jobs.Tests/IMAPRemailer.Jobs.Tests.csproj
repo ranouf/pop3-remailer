@@ -20,6 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\jobs\IMAPRemailer.Jobs\IMAPRemailer.Jobs.csproj" />
+    <ProjectReference Include="..\IMAPRemailer.Jobs\IMAPRemailer.Jobs.csproj" />
   </ItemGroup>
 </Project>

@@ -13,12 +13,12 @@ Dans chaque classe C#, les méthodes publiques précèdent les méthodes privée
 
 ```powershell
 dotnet tool restore
-dotnet csharpier check src/jobs src/tests
+dotnet csharpier check src/jobs
 dotnet build src/jobs/IMAPRemailer.sln --configuration Release /warnaserror
-dotnet test src/jobs/IMAPRemailer.sln --collect:"XPlat Code Coverage" --settings src/tests/coverage.runsettings
+dotnet test src/jobs/IMAPRemailer.sln --collect:"XPlat Code Coverage" --settings src/jobs/coverage.runsettings
 ```
 
-Pour formater les fichiers C#, utiliser `dotnet csharpier format src/jobs src/tests`. Le client Angular/Firebase conserve ses commandes ESLint et Prettier dans `src/client/package.json`.
+Pour formater les fichiers C#, utiliser `dotnet csharpier format src/jobs`. Le client Angular/Firebase conserve ses commandes ESLint et Prettier dans `src/client/package.json`.
 
 ## Configuration
 
@@ -28,7 +28,7 @@ La clé `JobSettings:Cron` accepte une expression cron à six champs avec second
 
 Les identifiants IMAP (UIDVALIDITY et UID) des messages confirmés dans Gmail sont enregistrés dans la base SQLite `src/jobs/data/state.db`, ignorée par Git. La clé `SqliteSettings:DatabasePath` permet de choisir un autre emplacement. Les anciens UIDL restent dans cette base pour préserver l'historique; l'ancien `state.json` est importé au premier démarrage puis renommé en `state.json.migrated`. Sauvegardez `state.db` si la synchronisation est déplacée vers un autre PC.
 
-Les tests de `src/tests/IMAPRemailer.Jobs.Tests` suivent la convention AirInuit `*_Tests.cs` et couvrent le service IMAP via un serveur TLS local, l'API Gmail simulée, l'orchestration et SQLite. La CI impose 100 % des lignes et des branches du code utile. `src/jobs/IMAPRemailer.Jobs/Program.cs` est exclu de la mesure : il assemble les services et traite les arguments de ligne de commande. Le projet `IMAPRemailer.Tray` est également exclu de la couverture unitaire : son affichage et ses événements Windows sont validés visuellement. Les fichiers générés par .NET et le code des tests ne font pas partie du périmètre de production mesuré.
+Les tests de `src/jobs/IMAPRemailer.Jobs.Tests` suivent la convention AirInuit `*_Tests.cs` et couvrent le service IMAP via un serveur TLS local, l'API Gmail simulée, l'orchestration et SQLite. La CI impose 100 % des lignes et des branches du code utile. `src/jobs/IMAPRemailer.Jobs/Program.cs` est exclu de la mesure : il assemble les services et traite les arguments de ligne de commande. Le projet `IMAPRemailer.Tray` est également exclu de la couverture unitaire : son affichage et ses événements Windows sont validés visuellement. Les fichiers générés par .NET et le code des tests ne font pas partie du périmètre de production mesuré.
 
 ## Vérifications et exécution
 
