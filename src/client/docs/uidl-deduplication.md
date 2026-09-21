@@ -1,5 +1,9 @@
 # UIDL Deduplication Strategy
 
+This describes the retained legacy POP3/Firebase transfer code. The active
+local IMAP job uses IMAP UIDVALIDITY and UID with SQLite state; see the
+[root README](../../../README.md).
+
 ## Primary key
 
 The application uses the POP3 `UIDL` as the main deduplication key.

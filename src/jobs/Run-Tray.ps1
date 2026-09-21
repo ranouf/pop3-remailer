@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $jobSettingsDirectory = Join-Path $PSScriptRoot 'IMAPRemailer.Jobs\bin\Release\net10.0\publish'
 $trayExecutable = Join-Path $PSScriptRoot 'IMAPRemailer.Tray\bin\Release\net10.0-windows\publish\IMAPRemailer.Tray.exe'
 
@@ -7,6 +8,7 @@ $env:DOTNET_ENVIRONMENT = 'Development'
 $process = Start-Process `
     -FilePath $trayExecutable `
     -ArgumentList "`"$jobSettingsDirectory`"" `
+    -WorkingDirectory $repositoryRoot `
     -PassThru `
     -Wait `
     -WindowStyle Hidden

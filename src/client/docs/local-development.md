@@ -97,12 +97,13 @@ Open:
 This is convenient for fast frontend iteration, but it is not the most faithful
 representation of deployed Hosting behavior.
 
-## Simulate the scheduled job locally
+## Run the active transfer job locally
 
 ```powershell
-npm run build --workspace functions
-node functions/lib/jobs/run-email-transfer-job-local.js
+$env:DOTNET_ENVIRONMENT = 'Development'
+dotnet run --project src/jobs/IMAPRemailer.Jobs -- --once
 ```
 
-This runs the same transfer orchestration as the scheduled function from a
-local entry point.
+Run this from the repository root after configuring the ignored
+`src/jobs/IMAPRemailer.Jobs/appsettings.Development.json`. The Firebase
+scheduled transfer is no longer deployed. See the [root README](../../../README.md).

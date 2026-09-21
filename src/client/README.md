@@ -3,22 +3,15 @@
 [![Pull Request Validation](https://github.com/ranouf/pop3-remailer/actions/workflows/pull-request-validation.yml/badge.svg)](https://github.com/ranouf/pop3-remailer/actions/workflows/pull-request-validation.yml)
 [![Firebase Deploy](https://github.com/ranouf/pop3-remailer/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/ranouf/pop3-remailer/actions/workflows/firebase-deploy.yml)
 
-`pop3-remailer` is a Firebase-based POP3-to-Gmail bridge with an operations
-dashboard.
-
-The original goal is simple: Gmail is no longer the right place to rely on
-built-in POP3 retrieval for this Orange or Wanadoo mailbox scenario, so this
-project takes over the job. It polls a POP3 mailbox, imports only the new
-messages into Gmail through the Gmail API, keeps the process idempotent with
-Firestore, and exposes operational visibility through a secured web dashboard.
+This directory contains the Firebase API and Angular dashboard from the
+original POP3 remailer. The active Orange-to-Gmail transfer runs locally in the
+.NET application under [`../jobs`](../jobs). See the [root README](../../README.md)
+for installation and transfer settings.
 
 ## What the solution includes
 
-- A scheduled Firebase Functions v2 job that imports new POP3 messages into
-  Gmail
-- A Firestore-backed deduplication and job history model
-- Persisted job-run statistics for dashboards and release diagnostics
-- A secured HTTP API for health checks and statistics
+- A Firebase Functions v2 HTTP API for health checks and historical statistics
+- Firestore-backed statistics from the earlier Firebase transfer job
 - An Angular 21 + Tailwind CSS 4 dashboard deployed on Firebase Hosting
 - Firebase Authentication with Google Sign-In for dashboard access
 - Unified CI/CD for Hosting, Functions, Firestore rules, Firestore indexes,
@@ -26,10 +19,9 @@ Firestore, and exposes operational visibility through a secured web dashboard.
 
 ## Key behaviors
 
-- POP3 messages are deduplicated by UIDL before import
-- Imported UIDL records are retained and cleaned up with a configurable policy
-- The scheduled job runs every hour
-- POP3 scanning is bounded and incremental to reduce unnecessary mailbox reads
+- The Firebase scheduled POP3 transfer is no longer exported or deployed
+- The dashboard's Firestore statistics do not include local .NET/SQLite runs;
+  the Windows tray displays those runs
 - The dashboard can only access the API when the Firebase-authenticated email
   matches the configured Gmail user email
 - Firestore remains backend-only; the web app never reads Firestore directly
@@ -43,7 +35,8 @@ Firestore, and exposes operational visibility through a secured web dashboard.
 - `functions/src/infrastructure`: POP3, Gmail, Firestore, Firebase auth,
   logging, analytics, and configuration loaders
 - `functions/src/api`: HTTP API, controllers, runtime wiring, and auth
-- `functions/src/jobs`: scheduled email transfer entrypoint and orchestration
+- `functions/src/jobs`: retained legacy POP3 transfer code, not deployed as a
+  scheduled function
 - `functions/tests`: unit and integration coverage for the backend
 
 ### Frontend
@@ -75,7 +68,7 @@ Firestore, and exposes operational visibility through a secured web dashboard.
 - Firebase Hosting enabled
 - Firebase Authentication enabled with Google Sign-In
 - A Firebase Web App configured for the project
-- A POP3-enabled Orange or Wanadoo mailbox
+- An Orange IMAP mailbox for the local .NET transfer job
 - A Gmail API OAuth2 client with a refresh token
 - An Amplitude project and API key
 
@@ -83,7 +76,7 @@ Firestore, and exposes operational visibility through a secured web dashboard.
 
 ```powershell
 nvm use 22
-npm install
+npm ci
 Copy-Item functions/.env.example functions/.env.local
 ```
 
@@ -149,12 +142,16 @@ Open:
 
 - [http://localhost:4200](http://localhost:4200)
 
-### Run the scheduled job locally
+### Run the local transfer job
 
 ```powershell
-npm run build --workspace functions
-node functions/lib/jobs/run-email-transfer-job-local.js
+$env:DOTNET_ENVIRONMENT = 'Development'
+dotnet run --project src/jobs/IMAPRemailer.Jobs -- --once
 ```
+
+Run this from the repository root.
+The .NET job reads its own `appsettings.json` and ignored
+`appsettings.Development.json`; the Firebase dotenv file does not configure it.
 
 ## Quality gates
 
@@ -180,9 +177,10 @@ npm run verify
 
 ## Deployment
 
-Pushes to `main` trigger the single deployment workflow:
+Pushes to `main` that change `src/client/**` trigger the Firebase deployment
+workflow; it can also be started manually:
 
-- [firebase-deploy.yml](.github/workflows/firebase-deploy.yml)
+- [firebase-deploy.yml](../../.github/workflows/firebase-deploy.yml)
 
 That workflow:
 
@@ -207,14 +205,14 @@ functions/
 web/
   src/
     app/
-.github/
-  workflows/
 docs/
 firebase.json
 firestore.rules
 README.md
 OVERVIEW.md
 ```
+
+The repository also contains `src/jobs/` and `.github/workflows/` at its root.
 
 ## Documentation
 

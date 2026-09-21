@@ -15,6 +15,10 @@ node -v
 
 ## POP3 authentication fails
 
+This applies to the Firebase API's POP3 health check and retained legacy code.
+For the active local IMAP job, check `OrangeSettings` in the ignored
+`src/jobs/IMAPRemailer.Jobs/appsettings.Development.json` instead.
+
 Checks:
 
 - mailbox credentials are valid
@@ -39,11 +43,12 @@ Checks:
 - the deployment service account has deployment permissions
 - Firestore is enabled in Native mode
 
-## Scheduled function appears to run twice
+## Local IMAP job appears to run twice
 
-This is possible with scheduled functions. The application is designed to be
-idempotent through the Firestore UIDL claim step, so replay should not create
-duplicate Gmail imports.
+Check that only one `IMAP Remailer` scheduled task or background process is
+running. The local job records confirmed imports in SQLite and checks Gmail
+before importing, so a retried run can resume archiving without duplicating
+confirmed messages.
 
 ## Coverage falls below 90%
 

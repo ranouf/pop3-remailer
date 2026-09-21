@@ -2,6 +2,9 @@
 
 Le projet Firebase et son interface Angular se trouvent dans `src/client`.
 La synchronisation locale C# se trouve dans `src/jobs/IMAPRemailer.sln`.
+Le tableau de bord Firebase conserve les statistiques historiques de Firestore;
+les nouvelles exécutions locales sont enregistrées dans SQLite et affichées
+dans l'icône Windows, sans synchronisation vers ce tableau de bord.
 
 La solution suit la séparation du projet AirInuit : `IMAPRemailer.Core` définit `IEmailSourceService`, `IEmailDestinationService`, `ITransferState`, `IJobRunHistory` et `IEmailManager`. Son `EmailManager` orchestre le transfert sans dépendre des fournisseurs; le helper statique `Email/Helpers/TransferMetricsHelper` mesure les étapes et écrit leur durée dans les logs. `IMAPRemailer.Infrastructure` fournit `OrangeImapSourceService`, `GmailDestinationService` et les stockages SQLite; `IMAPRemailer.Jobs` contient `Program`, `Triggers` et `Runtime`. `IMAPRemailer.Tray` affiche l'état de la job dans la zone de notification Windows.
 
@@ -46,7 +49,7 @@ dotnet run --project src/jobs/IMAPRemailer.Jobs -- --once
 
 `--dry-run` lit les courriels et vérifie les identifiants RFC 822 dans Gmail sans importer ni déplacer de message. `--once` traite au plus `JobSettings:MaxMessagesPerRun` messages de la boîte de réception Orange, en commençant par les plus récents. La valeur par défaut est `10` dans les appsettings; le code et les scripts n'imposent pas d'autre plafond. Pour accélérer le traitement du reste, augmentez cette valeur, par exemple à `100`, après la phase de test. La tâche Windows charge `appsettings.Development.json`, dont la valeur prévaut sur `appsettings.json`; modifiez donc la valeur Development, puis relancez `Install-ScheduledTask.ps1` pour republier les paramètres. Le manager recherche le `Message-ID` dans Gmail avant chaque import; après confirmation de Gmail, il marque le message dans SQLite puis le déplace dans le dossier Orange `Transferred to Gmail`. Si le déplacement échoue, le prochain run le reprend sans réimporter. Une erreur d'import laisse le message dans la boîte de réception. Les appels Gmail visent directement `GmailSettings:UserEmail`; `--check-gmail` reste une vérification manuelle explicite.
 
-## Exécution horaire en arrière-plan
+## Exécution en arrière-plan
 
 Depuis PowerShell, avec la session Windows qui possède les paramètres locaux :
 

@@ -52,7 +52,6 @@ correctly.
 ## Notes
 
 - the project intentionally targets `nodejs22`
-- the scheduler job is created automatically when the scheduled function is
-  deployed
-- do not manually edit or delete the generated scheduler job from Google Cloud
-  unless you intentionally want to replace the deployed definition
+- Firebase deploys the HTTP API and dashboard. The former scheduled POP3
+  function is no longer exported; the active IMAP transfer runs locally under
+  `src/jobs`
