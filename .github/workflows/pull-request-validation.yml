@@ -146,6 +146,12 @@ jobs:
       - name: Build workspace
         run: npm run build
 
+      - name: Verify standalone Firebase Functions dependencies
+        run: |
+          mkdir -p "$RUNNER_TEMP/firebase-functions"
+          cp functions/package.json functions/package-lock.json functions/.npmrc "$RUNNER_TEMP/firebase-functions/"
+          npm ci --omit=dev --prefix "$RUNNER_TEMP/firebase-functions" --no-audit --no-fund
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
