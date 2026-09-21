@@ -1,229 +1,72 @@
-# pop3-remailer
+# IMAP Remailer
 
-[![Pull Request Validation](https://github.com/ranouf/pop3-remailer/actions/workflows/pull-request-validation.yml/badge.svg)](https://github.com/ranouf/pop3-remailer/actions/workflows/pull-request-validation.yml)
-[![Firebase Deploy](https://github.com/ranouf/pop3-remailer/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/ranouf/pop3-remailer/actions/workflows/firebase-deploy.yml)
+Le projet Firebase et son interface Angular se trouvent dans `src/client`.
+La synchronisation locale C# se trouve dans `src/jobs/IMAPRemailer.sln`.
 
-`pop3-remailer` is a Firebase-based POP3-to-Gmail bridge with an operations
-dashboard.
+La solution suit la séparation du projet AirInuit : `IMAPRemailer.Core` définit `IEmailSourceService`, `IEmailDestinationService`, `ITransferState`, `IJobRunHistory` et `IEmailManager`. Son `EmailManager` orchestre le transfert sans dépendre des fournisseurs; le helper statique `Email/Helpers/TransferMetricsHelper` mesure les étapes et écrit leur durée dans les logs. `IMAPRemailer.Infrastructure` fournit `OrangeImapSourceService`, `GmailDestinationService` et les stockages SQLite; `IMAPRemailer.Jobs` contient `Program`, `Triggers` et `Runtime`. `IMAPRemailer.Tray` affiche l'état de la job dans la zone de notification Windows.
 
-The original goal is simple: Gmail is no longer the right place to rely on
-built-in POP3 retrieval for this Orange or Wanadoo mailbox scenario, so this
-project takes over the job. It polls a POP3 mailbox, imports only the new
-messages into Gmail through the Gmail API, keeps the process idempotent with
-Firestore, and exposes operational visibility through a secured web dashboard.
+## Règles de code
 
-## What the solution includes
+Les projets C# reprennent les conventions AirInuit : `.editorconfig`, CSharpier 1.2.6, analyseurs .NET, validation du style au build et SDK .NET 10. La règle `IDE0011` impose les accolades après chaque `if` et fait échouer le build en cas d'écart. Le contrôle exécuté en CI est :
 
-- A scheduled Firebase Functions v2 job that imports new POP3 messages into
-  Gmail
-- A Firestore-backed deduplication and job history model
-- Persisted job-run statistics for dashboards and release diagnostics
-- A secured HTTP API for health checks and statistics
-- An Angular 21 + Tailwind CSS 4 dashboard deployed on Firebase Hosting
-- Firebase Authentication with Google Sign-In for dashboard access
-- Unified CI/CD for Hosting, Functions, Firestore rules, Firestore indexes,
-  and GitHub release creation
-
-## Key behaviors
-
-- POP3 messages are deduplicated by UIDL before import
-- Imported UIDL records are retained and cleaned up with a configurable policy
-- The scheduled job runs every hour
-- POP3 scanning is bounded and incremental to reduce unnecessary mailbox reads
-- The dashboard can only access the API when the Firebase-authenticated email
-  matches the configured Gmail user email
-- Firestore remains backend-only; the web app never reads Firestore directly
-
-## Architecture
-
-### Backend
-
-- `functions/src/core`: configuration, job runs, statistics, and domain-level
-  contracts
-- `functions/src/infrastructure`: POP3, Gmail, Firestore, Firebase auth,
-  logging, analytics, and configuration loaders
-- `functions/src/api`: HTTP API, controllers, runtime wiring, and auth
-- `functions/src/jobs`: scheduled email transfer entrypoint and orchestration
-- `functions/tests`: unit and integration coverage for the backend
-
-### Frontend
-
-- `web/src/app/core`: runtime config, auth, HTTP, and shared app services
-- `web/src/app/features/login`: login screen with Firebase Google Sign-In
-- `web/src/app/features/dashboard`: health checks, statistics, charts, and run
-  summaries
-- `web/src/app/app.routes.ts`: lazy-loaded routes for login and dashboard
-
-## Tech stack
-
-- Node.js 22
-- Firebase Functions v2
-- Firebase Hosting
-- Firebase Authentication
-- Firestore
-- Angular 21
-- Tailwind CSS 4
-- Vitest
-- TypeScript
-
-## Prerequisites
-
-- Node.js `22`
-- npm `10.x`
-- Firebase CLI
-- A Firebase project on the Blaze plan
-- Firebase Hosting enabled
-- Firebase Authentication enabled with Google Sign-In
-- A Firebase Web App configured for the project
-- A POP3-enabled Orange or Wanadoo mailbox
-- A Gmail API OAuth2 client with a refresh token
-- An Amplitude project and API key
-
-## Installation
+Dans chaque classe C#, les méthodes publiques précèdent les méthodes privées. Toutes les méthodes privées sont regroupées dans `#region Private` / `#endregion` à la fin de la classe.
 
 ```powershell
-nvm use 22
-npm install
-Copy-Item functions/.env.example functions/.env.local
+dotnet tool restore
+dotnet csharpier check src/jobs src/tests
+dotnet build src/jobs/IMAPRemailer.sln --configuration Release /warnaserror
+dotnet test src/jobs/IMAPRemailer.sln --collect:"XPlat Code Coverage" --settings src/tests/coverage.runsettings
 ```
 
-Fill `functions/.env.local` with your local values.
+Pour formater les fichiers C#, utiliser `dotnet csharpier format src/jobs src/tests`. Le client Angular/Firebase conserve ses commandes ESLint et Prettier dans `src/client/package.json`.
 
-## Environment variables
+## Configuration
 
-Local backend configuration is loaded from:
+Comme dans AirInuit, `Program.cs` charge `src/jobs/IMAPRemailer.Jobs/appsettings.json`, puis `appsettings.Development.json` lorsque `DOTNET_ENVIRONMENT=Development`, puis les variables d'environnement. La configuration est divisée en quatre sections : `OrangeSettings` (hôte IMAP, port 993, identifiants et dossier `Transferred to Gmail`), `GmailSettings` (OAuth et adresse cible), `SqliteSettings` (fichier local) et `JobSettings` (cron et limite par run). Le fichier Development, ignoré par Git, contient les secrets locaux. Les variables d'environnement reprennent les clés hiérarchiques avec `__`, par exemple `JobSettings__MaxMessagesPerRun`. La webjob C# ne lit plus le fichier `.env.local` du client Firebase.
 
-- `functions/.env.local`
-- `functions/.env.test.local`
+La clé `JobSettings:Cron` accepte une expression cron à six champs avec secondes, interprétée dans le fuseau horaire local du PC. La valeur livrée, `0 0 * * * *`, lance une synchronisation au début de chaque heure. `JobSettings:RunRetentionDays` conserve l'historique pendant sept jours par défaut. Les runs expirés et leurs logs sont supprimés au démarrage du prochain run; aucune purge ne se produit pendant que la synchronisation reste inactive.
 
-Required keys are documented in:
+Les identifiants IMAP (UIDVALIDITY et UID) des messages confirmés dans Gmail sont enregistrés dans la base SQLite `src/jobs/data/state.db`, ignorée par Git. La clé `SqliteSettings:DatabasePath` permet de choisir un autre emplacement. Les anciens UIDL restent dans cette base pour préserver l'historique; l'ancien `state.json` est importé au premier démarrage puis renommé en `state.json.migrated`. Sauvegardez `state.db` si la synchronisation est déplacée vers un autre PC.
 
-- [functions/.env.example](functions/.env.example)
-- [docs/github-secrets.md](docs/github-secrets.md)
+Les tests de `src/tests/IMAPRemailer.Jobs.Tests` suivent la convention AirInuit `*_Tests.cs` et couvrent le service IMAP via un serveur TLS local, l'API Gmail simulée, l'orchestration et SQLite. La CI impose 100 % des lignes et des branches du code utile. `src/jobs/IMAPRemailer.Jobs/Program.cs` est exclu de la mesure : il assemble les services et traite les arguments de ligne de commande. Le projet `IMAPRemailer.Tray` est également exclu de la couverture unitaire : son affichage et ses événements Windows sont validés visuellement. Les fichiers générés par .NET et le code des tests ne font pas partie du périmètre de production mesuré.
 
-Important examples:
+## Vérifications et exécution
 
-- `ENVIRONMENT_NAME`
-- `SOURCE_PROVIDER`
-- `SOURCE_EMAIL_ADDRESS`
-- `POP3_*`
-- `GMAIL_*`
-- `AMPLITUDE_API_KEY`
-- `UIDL_RETENTION_DAYS`
-- `UIDL_MINIMUM_RETAINED_COUNT`
-- `UIDL_CLEANUP_BATCH_SIZE`
-
-## Local development
-
-### Backend-only emulators
+Depuis la racine du projet :
 
 ```powershell
-npm run emulators
+$env:DOTNET_ENVIRONMENT = 'Development'
+dotnet run --project src/jobs/IMAPRemailer.Jobs -- --check-imap
+dotnet run --project src/jobs/IMAPRemailer.Jobs -- --check-gmail
+dotnet run --project src/jobs/IMAPRemailer.Jobs -- --dry-run
+dotnet run --project src/jobs/IMAPRemailer.Jobs -- --once
 ```
 
-### Full local stack that mirrors production more closely
+`--dry-run` lit les courriels et vérifie les identifiants RFC 822 dans Gmail sans importer ni déplacer de message. `--once` traite au plus `JobSettings:MaxMessagesPerRun` messages de la boîte de réception Orange, en commençant par les plus récents. La valeur actuelle est `2` dans les appsettings pour les essais; le code et les scripts n'imposent pas d'autre plafond. Pour accélérer le traitement du reste, augmentez cette valeur, par exemple à `100`, après la phase de test. La tâche Windows charge `appsettings.Development.json`, dont la valeur prévaut sur `appsettings.json`; modifiez donc la valeur Development, puis relancez `Install-ScheduledTask.ps1` pour republier les paramètres. Le manager recherche le `Message-ID` dans Gmail avant chaque import; après confirmation de Gmail, il marque le message dans SQLite puis le déplace dans le dossier Orange `Transferred to Gmail`. Si le déplacement échoue, le prochain run le reprend sans réimporter. Une erreur d'import laisse le message dans la boîte de réception. Les appels Gmail visent directement `GmailSettings:UserEmail`; `--check-gmail` reste une vérification manuelle explicite.
+
+## Exécution horaire en arrière-plan
+
+Depuis PowerShell, avec la session Windows qui possède les paramètres locaux :
 
 ```powershell
-npm run start:local
+./src/jobs/Install-ScheduledTask.ps1
 ```
 
-This command builds the backend and frontend, then starts:
+Le script publie les exécutables, retire l'ancienne tâche `POP3 Remailer` et crée deux tâches Windows : `IMAP Remailer` pour la synchronisation et `IMAP Remailer Tray` pour l'icône. Elles démarrent à l'ouverture de session avec l'environnement Development; le runtime applique ensuite l'horaire et la limite des appsettings. Les commandes manuelles lisent la même limite. Les journaux horodatés sont dans `src/jobs/data/logs`, avec les étapes Gmail, IMAP et SQLite et les marqueurs `JOB_RUN_STARTED`, `JOB_RUN_COMPLETED` et `JOB_RUN_FAILED`. L'ancienne fonction Firebase planifiée n'est plus exportée; l'API web reste présente dans `src/client`.
 
-- Firebase Hosting emulator
-- Firebase Auth emulator
-- Firebase Functions emulator
-- Firestore emulator
-- Pub/Sub emulator
+## Icône de la zone de notification
 
-Open:
+L'icône personnalisée représente une enveloppe. Son point est vert quand le service attend, orange pendant un run, rouge après un échec et gris si le service est arrêté. Le survol montre un résumé court. Un clic ouvre le **flyout** au-dessus de l'icône; le menu contextuel propose aussi **Open full window**, une fenêtre d'historique redimensionnable. Les deux affichent tous les runs conservés, du plus ancien au plus récent, avec le dernier ouvert par défaut. Un seul run est ouvert à la fois. Il affiche ses comptes, sa durée et ses logs; les nouveaux logs apparaissent chaque seconde pendant un run. Le défilement reste au bas des logs jusqu'à ce que vous le déplaciez manuellement. Les informations sont noires, les avertissements orange et les erreurs rouges sur fond blanc. Un run en échec porte un indicateur rouge et affiche son erreur. Le bouton de suppression d'un run terminé efface aussi ses logs après confirmation. Le menu contextuel permet enfin de fermer seulement l'icône. La job continue de fonctionner si l'icône est fermée.
 
-- [http://127.0.0.1:5000](http://127.0.0.1:5000)
+L'historique est enregistré dans les tables SQLite `job_runs` et `job_run_logs`, à côté de `imported_messages`. La job et l'icône ouvrent chacune leur propre connexion. Les runs antérieurs à cette version conservent leurs statistiques, mais n'ont pas de logs enregistrés dans SQLite. Un run commencé puis abandonné est affiché comme interrompu et peut être supprimé. Windows peut placer l'icône dans le menu des icônes masquées; elle peut être épinglée dans la zone visible depuis les paramètres de la barre des tâches. Pour relancer uniquement l'icône dans la session courante, exécuter `./src/jobs/Run-Tray.ps1`.
 
-### Angular dev server
+`Run-Background.ps1` et `Run-Once.ps1` affichent aussi leurs logs dans la console lorsqu'ils sont lancés manuellement. La tâche Windows reste masquée; pour suivre ses logs dans une console sans démarrer une seconde synchronisation, utilisez :
 
 ```powershell
-npm run start --workspace web
+$log = Get-ChildItem src/jobs/data/logs/*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+Get-Content $log.FullName -Wait
 ```
 
-Open:
+## Durées dans les journaux
 
-- [http://localhost:4200](http://localhost:4200)
-
-### Run the scheduled job locally
-
-```powershell
-npm run build --workspace functions
-node functions/lib/jobs/run-email-transfer-job-local.js
-```
-
-## Quality gates
-
-The repository uses the same quality bar across both workspaces.
-
-- Lint: ESLint
-- Formatting: Prettier
-- Type checks: TypeScript
-- Tests: Vitest
-- Minimum coverage threshold: `90%`
-
-Useful commands:
-
-```powershell
-npm run lint
-npm run format:check
-npm run typecheck
-npm run build
-npm run test
-npm run coverage
-npm run verify
-```
-
-## Deployment
-
-Pushes to `main` trigger the single deployment workflow:
-
-- [firebase-deploy.yml](.github/workflows/firebase-deploy.yml)
-
-That workflow:
-
-- installs dependencies
-- builds `functions` and `web`
-- deploys Firebase Hosting
-- deploys Firebase Functions
-- deploys Firestore rules and indexes
-- creates a GitHub release from [OVERVIEW.md](OVERVIEW.md)
-
-## Project structure
-
-```text
-functions/
-  src/
-    api/
-    core/
-    infrastructure/
-    jobs/
-    index.ts
-  tests/
-web/
-  src/
-    app/
-.github/
-  workflows/
-docs/
-firebase.json
-firestore.rules
-README.md
-OVERVIEW.md
-```
-
-## Documentation
-
-- [Local development](docs/local-development.md)
-- [Firebase setup](docs/firebase-setup.md)
-- [Firestore configuration](docs/firestore-configuration.md)
-- [Gmail API configuration](docs/gmail-api-configuration.md)
-- [GitHub secrets](docs/github-secrets.md)
-- [UIDL deduplication strategy](docs/uidl-deduplication.md)
-- [Amplitude tracking](docs/amplitude-tracking.md)
-- [CI/CD workflows](docs/ci-cd.md)
-- [Troubleshooting](docs/troubleshooting.md)
+Chaque run écrit des lignes `TIMING` dans les journaux et dans la console lors d'un lancement manuel. `TotalDurationMs` et `RunStatus` indiquent la durée totale et le succès ou l'échec; le log `Source returned` indique le nombre de messages récupérés et `Synchronization completed` résume les résultats. `DurationMs` mesure `SourceRead`, `StateLookup`, `DestinationLookup`, `DestinationImport`, `StateWrite` et `SourceArchive`. Chaque courriel possède aussi sa durée totale, son identifiant source et son résultat (`Imported`, `AlreadyPresent`, `Pending` ou `Failed`). Les durées sont écrites même lorsqu'une opération échoue.
