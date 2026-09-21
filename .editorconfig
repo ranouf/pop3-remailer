@@ -4,6 +4,25 @@ root = true
 charset = utf-8
 end_of_line = lf
 indent_style = space
-indent_size = 2
+indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+csharp_prefer_braces = true:error
+dotnet_diagnostic.IDE0011.severity = error
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+dotnet_diagnostic.CS0105.severity = error
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA2254.severity = none
+dotnet_diagnostic.CA1873.severity = none
+
+[*.{csproj,props,targets,json,yml,yaml}]
+indent_size = 2

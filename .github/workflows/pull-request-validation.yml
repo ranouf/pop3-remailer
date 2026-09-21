@@ -18,9 +18,48 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  dotnet:
+    name: dotnet-format-build-test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore solution
+        run: dotnet restore src/jobs/IMAPRemailer.sln
+
+      - name: Restore CSharpier
+        run: dotnet tool restore
+
+      - name: Check C# formatting
+        run: dotnet csharpier check src/jobs
+
+      - name: Build with analyzers
+        run: dotnet build src/jobs/IMAPRemailer.sln --no-restore --configuration Release /warnaserror
+
+      - name: Run .NET tests with coverage
+        run: dotnet test src/jobs/IMAPRemailer.sln --no-restore --configuration Release --collect:"XPlat Code Coverage" --settings src/jobs/coverage.runsettings --results-directory .codex/coverage
+
+      - name: Require complete useful-code coverage
+        shell: pwsh
+        run: |
+          $report = Get-ChildItem .codex/coverage -Recurse -Filter coverage.cobertura.xml | Select-Object -First 1
+          [xml]$coverage = Get-Content $report.FullName
+          if ($coverage.coverage.'line-rate' -ne '1' -or $coverage.coverage.'branch-rate' -ne '1') {
+            throw "Couverture insuffisante : lignes $($coverage.coverage.'line-rate'), branches $($coverage.coverage.'branch-rate')."
+          }
+
   lint:
     name: lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,6 +69,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: src/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -40,6 +80,9 @@ jobs:
   prettier:
     name: prettier
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,6 +92,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: src/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -59,6 +103,9 @@ jobs:
   typecheck:
     name: typecheck
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,6 +115,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: src/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -78,6 +126,9 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -87,6 +138,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: src/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -98,13 +150,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: functions-build
-          path: functions/lib
+          path: src/client/functions/lib
           if-no-files-found: error
           retention-days: 7
 
   test:
     name: test-and-coverage
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -114,6 +169,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: src/client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -126,8 +182,8 @@ jobs:
         with:
           name: coverage-report
           path: |
-            functions/coverage
-            web/coverage
+            src/client/functions/coverage
+            src/client/web/coverage
           if-no-files-found: error
           retention-days: 7
 
@@ -135,12 +191,16 @@ jobs:
     name: comment
     if: always()
     needs:
+      - dotnet
       - lint
       - prettier
       - typecheck
       - build
       - test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
     steps:
       - name: Publish PR status badges
         uses: actions/github-script@v7
@@ -163,6 +223,7 @@ jobs:
               '## PR Validation',
               '',
               [
+                toBadge('dotnet', '${{ needs.dotnet.result }}'),
                 toBadge('lint', '${{ needs.lint.result }}'),
                 toBadge('prettier', '${{ needs.prettier.result }}'),
                 toBadge('typecheck', '${{ needs.typecheck.result }}'),

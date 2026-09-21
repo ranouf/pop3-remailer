@@ -1,4 +1,6 @@
 .DS_Store
+.codex/
+**/.codex/
 .firebase/
 .firebaserc
 tmp/
@@ -10,7 +12,16 @@ functions/node_modules/
 functions/lib/
 functions/coverage/
 functions/src/api/generated/
+src/client/functions/lib/
+src/client/functions/src/api/generated/
 functions/.env.local
 functions/.env.test.local
+src/client/functions/.env.local
+src/client/functions/.env.test.local
+src/jobs/IMAPRemailer.Jobs/appsettings.Development.json
+src/jobs/**/bin/
+src/jobs/**/obj/
+src/jobs/data/
+*.csproj.user
 coverage/
 *.log

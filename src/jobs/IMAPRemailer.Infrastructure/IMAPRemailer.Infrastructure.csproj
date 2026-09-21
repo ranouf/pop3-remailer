@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.17.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.6" />
+    <PackageReference
+      Include="SQLitePCLRaw.bundle_e_sqlite3"
+      Version="2.1.12"
+    />
+    <ProjectReference Include="..\IMAPRemailer.Core\IMAPRemailer.Core.csproj" />
+  </ItemGroup>
+</Project>
