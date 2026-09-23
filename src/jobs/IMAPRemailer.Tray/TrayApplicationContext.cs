@@ -20,6 +20,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private SummaryForm? summary;
     private SummaryForm? fullWindow;
     private IReadOnlyList<JobRunSummary> recentRuns = [];
+    private DateTimeOffset nextBackgroundStartAttemptUtc;
     private bool backgroundRunning;
     private bool refreshing;
 
@@ -129,6 +130,16 @@ public sealed class TrayApplicationContext : ApplicationContext
                 CancellationToken.None
             );
             backgroundRunning = IsBackgroundRunning();
+            if (
+                !backgroundRunning
+                && DateTimeOffset.UtcNow >= nextBackgroundStartAttemptUtc
+            )
+            {
+                nextBackgroundStartAttemptUtc =
+                    DateTimeOffset.UtcNow.AddMinutes(1);
+                await RunScheduledTaskCommandAsync("/Run");
+            }
+
             var latest = recentRuns.Count == 0 ? null : recentRuns[0];
             icon.Icon =
                 !backgroundRunning ? stoppedIcon
