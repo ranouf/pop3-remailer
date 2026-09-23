@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using IMAPRemailer.Core.Email;
 using IMAPRemailer.Core.Email.Configuration;
 using IMAPRemailer.Core.Email.Models;
@@ -52,8 +53,13 @@ public sealed class TrayApplicationContext : ApplicationContext
         );
         menu.Items.Add(
             "Paramètres…",
-            CreateSettingsIcon(),
+            CreateMenuIcon("\uE713"),
             async (_, _) => await ShowSettingsAsync()
+        );
+        menu.Items.Add(
+            "Redémarrer la tâche de fond",
+            CreateMenuIcon("\uE72C"),
+            async (_, _) => await RestartBackgroundTaskAsync()
         );
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit icon", null, (_, _) => ExitThread());
@@ -211,14 +217,55 @@ public sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
-    private static Bitmap CreateSettingsIcon()
+    private async Task RestartBackgroundTaskAsync()
+    {
+        await RunScheduledTaskCommandAsync("/End");
+        await Task.Delay(1_000);
+        var exitCode = await RunScheduledTaskCommandAsync("/Run");
+        if (exitCode != 0)
+        {
+            icon.ShowBalloonTip(
+                5_000,
+                "IMAP Remailer",
+                "Impossible de redémarrer la tâche de fond.",
+                ToolTipIcon.Error
+            );
+            return;
+        }
+
+        icon.ShowBalloonTip(
+            3_000,
+            "IMAP Remailer",
+            "La tâche de fond a été redémarrée.",
+            ToolTipIcon.Info
+        );
+        await RefreshAsync();
+    }
+
+    private static async Task<int> RunScheduledTaskCommandAsync(string command)
+    {
+        using var process = Process.Start(
+            new ProcessStartInfo(
+                "schtasks.exe",
+                $"{command} /TN \"IMAP Remailer\""
+            )
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            }
+        )!;
+        await process.WaitForExitAsync();
+        return process.ExitCode;
+    }
+
+    private static Bitmap CreateMenuIcon(string glyph)
     {
         var bitmap = new Bitmap(20, 20);
         using var graphics = Graphics.FromImage(bitmap);
         using var font = new Font("Segoe MDL2 Assets", 12);
         TextRenderer.DrawText(
             graphics,
-            "\uE713",
+            glyph,
             font,
             new Rectangle(0, 0, 20, 20),
             Color.FromArgb(51, 65, 85),
