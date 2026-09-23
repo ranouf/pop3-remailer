@@ -21,6 +21,7 @@ public sealed class EmailManager_Tests
 
         Assert.Equal(0, destination.CheckCount);
         Assert.Equal(1, source.ReadCount);
+        Assert.Equal(1, source.DisconnectCount);
         Assert.Empty(source.MovedMessages);
         var run = Assert.Single(runs.Completed);
         Assert.True(run.Succeeded);
@@ -153,6 +154,7 @@ public sealed class EmailManager_Tests
         );
 
         Assert.Equal(1, source.ReadCount);
+        Assert.Equal(1, source.DisconnectCount);
         Assert.Empty(destination.ImportedMessages);
         Assert.False(Assert.Single(runs.Completed).Succeeded);
         Assert.Contains(
@@ -163,6 +165,25 @@ public sealed class EmailManager_Tests
         Assert.Contains(
             logger.Messages,
             message => message.Contains("TIMING Stage=SourceRead DurationMs=")
+        );
+    }
+
+    [Fact]
+    public async Task RunAsync_Should_Record_Run_When_Disconnect_Fails()
+    {
+        source.FailDisconnect = true;
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () =>
+                CreateManager().TransferAsync(CancellationToken.None)
+        );
+
+        Assert.Equal("IMAP disconnect failed", exception.Message);
+        Assert.True(Assert.Single(runs.Completed).Succeeded);
+        Assert.Contains(
+            logger.Messages,
+            message =>
+                message.Contains("TIMING RunStatus=Completed TotalDurationMs=")
         );
     }
 

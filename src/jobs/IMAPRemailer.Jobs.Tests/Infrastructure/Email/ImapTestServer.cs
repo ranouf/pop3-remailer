@@ -46,6 +46,7 @@ internal sealed class ImapTestServer : IAsyncDisposable
     }
 
     public int Port { get; }
+    public int ConnectionCount { get; private set; }
     public uint UidValidity { get; set; } = 1;
     public bool FolderExists { get; private set; }
     public List<string> Commands { get; } = [];
@@ -71,6 +72,7 @@ internal sealed class ImapTestServer : IAsyncDisposable
                 using var tcp = await listener.AcceptTcpClientAsync(
                     shutdown.Token
                 );
+                ConnectionCount++;
                 await ServeClientAsync(tcp);
             }
         }

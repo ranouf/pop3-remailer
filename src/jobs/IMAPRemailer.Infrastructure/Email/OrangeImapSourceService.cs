@@ -15,14 +15,15 @@ public sealed class OrangeImapSourceService(
     JobSettings jobSettings,
     IJobOverridesStore overridesStore,
     Func<ImapClient> clientFactory
-) : IEmailSourceService
+) : IEmailSourceService, IAsyncDisposable
 {
+    private ImapClient? client;
+
     /// <inheritdoc />
     public async Task CheckAsync(CancellationToken cancellationToken)
     {
-        using var client = await ConnectAsync(cancellationToken);
+        var client = await ConnectAsync(cancellationToken);
         await client.Inbox.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
-        await client.DisconnectAsync(true, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -30,7 +31,7 @@ public sealed class OrangeImapSourceService(
         CancellationToken cancellationToken
     )
     {
-        using var client = await ConnectAsync(cancellationToken);
+        var client = await ConnectAsync(cancellationToken);
         var inbox = client.Inbox;
         await inbox.OpenAsync(FolderAccess.ReadOnly, cancellationToken);
         var uids = await inbox.SearchAsync(SearchQuery.All, cancellationToken);
@@ -61,7 +62,6 @@ public sealed class OrangeImapSourceService(
             messages.Add(new SourceEmail(sourceId, parsed.MessageId, raw));
         }
 
-        await client.DisconnectAsync(true, cancellationToken);
         return messages;
     }
 
@@ -77,7 +77,7 @@ public sealed class OrangeImapSourceService(
             CultureInfo.InvariantCulture
         );
         var uid = uint.Parse(identifiers[2], CultureInfo.InvariantCulture);
-        using var client = await ConnectAsync(cancellationToken);
+        var client = await ConnectAsync(cancellationToken);
         var inbox = client.Inbox;
         await inbox.OpenAsync(FolderAccess.ReadWrite, cancellationToken);
         if (inbox.UidValidity != uidValidity)
@@ -116,7 +116,34 @@ public sealed class OrangeImapSourceService(
             destination,
             cancellationToken
         );
-        await client.DisconnectAsync(true, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task DisconnectAsync(CancellationToken cancellationToken)
+    {
+        if (client is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (client.IsConnected)
+            {
+                await client.DisconnectAsync(true, cancellationToken);
+            }
+        }
+        finally
+        {
+            client.Dispose();
+            client = null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        await DisconnectAsync(CancellationToken.None);
     }
 
     #region Private
@@ -128,7 +155,12 @@ public sealed class OrangeImapSourceService(
         CancellationToken cancellationToken
     )
     {
-        var client = clientFactory();
+        if (client is not null)
+        {
+            return client;
+        }
+
+        client = clientFactory();
         client.Timeout = orangeSettings.TimeoutMs;
         await client.ConnectAsync(
             orangeSettings.Host,

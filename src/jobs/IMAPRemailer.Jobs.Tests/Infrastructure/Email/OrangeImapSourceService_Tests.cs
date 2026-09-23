@@ -20,8 +20,9 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
         using var timeout = new CancellationTokenSource(
             TimeSpan.FromSeconds(10)
         );
+        await using var service = CreateService(server.Port);
 
-        await CreateService(server.Port).CheckAsync(timeout.Token);
+        await service.CheckAsync(timeout.Token);
 
         Assert.Contains(
             server.Commands,
@@ -40,9 +41,9 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
         using var timeout = new CancellationTokenSource(
             TimeSpan.FromSeconds(10)
         );
+        await using var service = CreateService(server.Port);
 
-        var messages = await CreateService(server.Port)
-            .ReadAsync(timeout.Token);
+        var messages = await service.ReadAsync(timeout.Token);
 
         Assert.Equal(
             ["imap:1:3", "imap:1:2"],
@@ -64,8 +65,9 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
         using var timeout = new CancellationTokenSource(
             TimeSpan.FromSeconds(10)
         );
+        await using var service = CreateService(server.Port);
 
-        Assert.Empty(await CreateService(server.Port).ReadAsync(timeout.Token));
+        Assert.Empty(await service.ReadAsync(timeout.Token));
     }
 
     [Fact]
@@ -75,11 +77,31 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
         using var timeout = new CancellationTokenSource(
             TimeSpan.FromSeconds(10)
         );
+        await using var service = CreateService(server.Port, maximum: 1);
 
-        var messages = await CreateService(server.Port, maximum: 1)
-            .ReadAsync(timeout.Token);
+        var messages = await service.ReadAsync(timeout.Token);
 
         Assert.Equal("imap:1:3", Assert.Single(messages).Id);
+    }
+
+    [Fact]
+    public async Task Transfer_Should_Reuse_One_Imap_Connection()
+    {
+        await using var server = new ImapTestServer(Mailbox);
+        using var timeout = new CancellationTokenSource(
+            TimeSpan.FromSeconds(10)
+        );
+        await using var service = CreateService(server.Port);
+
+        var messages = await service.ReadAsync(timeout.Token);
+        foreach (var message in messages)
+        {
+            await service.MarkTransferredAsync(message.Id, timeout.Token);
+        }
+
+        await service.DisconnectAsync(timeout.Token);
+
+        Assert.Equal(1, server.ConnectionCount);
     }
 
     [Theory]
@@ -94,9 +116,9 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
             TimeSpan.FromSeconds(10)
         );
         var sourceId = "imap:1:3";
+        await using var service = CreateService(server.Port);
 
-        await CreateService(server.Port)
-            .MarkTransferredAsync(sourceId, timeout.Token);
+        await service.MarkTransferredAsync(sourceId, timeout.Token);
 
         Assert.True(server.FolderExists);
         Assert.Contains(
@@ -116,10 +138,10 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
             TimeSpan.FromSeconds(10)
         );
         var sourceId = "imap:1:3";
+        await using var service = CreateService(server.Port);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            CreateService(server.Port)
-                .MarkTransferredAsync(sourceId, timeout.Token)
+            service.MarkTransferredAsync(sourceId, timeout.Token)
         );
 
         Assert.DoesNotContain(
