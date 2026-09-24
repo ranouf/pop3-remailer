@@ -59,6 +59,11 @@ public sealed class OrangeImapSourceService(
                 messageStream,
                 cancellationToken
             );
+            raw = await RepairSubjectEncodingAsync(
+                parsed,
+                raw,
+                cancellationToken
+            );
             messages.Add(new SourceEmail(sourceId, parsed.MessageId, raw));
         }
 
@@ -147,6 +152,29 @@ public sealed class OrangeImapSourceService(
     }
 
     #region Private
+
+    private static async Task<byte[]> RepairSubjectEncodingAsync(
+        MimeMessage message,
+        byte[] raw,
+        CancellationToken cancellationToken
+    )
+    {
+        var subject = message.Subject ?? string.Empty;
+        var repairedSubject = subject.Replace(
+            "Ã©",
+            "é",
+            StringComparison.Ordinal
+        );
+        if (repairedSubject == subject)
+        {
+            return raw;
+        }
+
+        message.Subject = repairedSubject;
+        using var stream = new MemoryStream();
+        await message.WriteToAsync(stream, cancellationToken);
+        return stream.ToArray();
+    }
 
     /// <summary>Connects and authenticates with the Orange IMAP server over TLS.</summary>
     /// <param name="cancellationToken">Cancels the connection.</param>

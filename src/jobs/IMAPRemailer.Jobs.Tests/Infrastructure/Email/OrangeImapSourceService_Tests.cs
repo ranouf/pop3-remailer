@@ -1,6 +1,7 @@
 using IMAPRemailer.Infrastructure.Email;
 using IMAPRemailer.Jobs.Tests.Fakes;
 using MailKit.Net.Imap;
+using MimeKit;
 
 namespace IMAPRemailer.Jobs.Tests.Infrastructure.Email;
 
@@ -82,6 +83,41 @@ public sealed class OrangeImapSourceService_Tests : BaseTest
         var messages = await service.ReadAsync(timeout.Token);
 
         Assert.Equal("imap:1:3", Assert.Single(messages).Id);
+    }
+
+    [Fact]
+    public async Task ReadAsync_Should_Repair_Utf8_Subject_Decoded_As_Latin1()
+    {
+        string[] mailbox =
+        [
+            "From: orange@example.com\r\nSubject: Votre Mail Orange Ã©volue &#x20;\r\n\r\nBody",
+        ];
+        await using var server = new ImapTestServer(mailbox);
+        using var timeout = new CancellationTokenSource(
+            TimeSpan.FromSeconds(10)
+        );
+        await using var service = CreateService(server.Port);
+
+        var source = Assert.Single(await service.ReadAsync(timeout.Token));
+        using var stream = new MemoryStream(source.Raw);
+        var message = await MimeMessage.LoadAsync(stream, timeout.Token);
+
+        Assert.Equal("Votre Mail Orange évolue &#x20;", message.Subject);
+    }
+
+    [Fact]
+    public async Task ReadAsync_Should_Preserve_Message_Without_Subject()
+    {
+        const string raw = "From: orange@example.com\r\n\r\nBody";
+        await using var server = new ImapTestServer([raw]);
+        using var timeout = new CancellationTokenSource(
+            TimeSpan.FromSeconds(10)
+        );
+        await using var service = CreateService(server.Port);
+
+        var source = Assert.Single(await service.ReadAsync(timeout.Token));
+
+        Assert.Equal(System.Text.Encoding.UTF8.GetBytes(raw), source.Raw);
     }
 
     [Fact]
