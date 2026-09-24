@@ -130,6 +130,10 @@ public sealed class GmailDestinationService_Tests : BaseTest
                     "/messages/import",
                     request.RequestUri.AbsolutePath
                 );
+                Assert.Equal(
+                    "?internalDateSource=dateHeader",
+                    request.RequestUri.Query
+                );
                 requestBody = await request.Content!.ReadAsStringAsync();
                 return JsonResponse("""{"id":"gmail-id"}""");
             })
@@ -153,10 +157,7 @@ public sealed class GmailDestinationService_Tests : BaseTest
         );
         Assert.Equal("INBOX", root.GetProperty("labelIds")[0].GetString());
         Assert.Equal("UNREAD", root.GetProperty("labelIds")[1].GetString());
-        Assert.Equal(
-            "dateHeader",
-            root.GetProperty("internalDateSource").GetString()
-        );
+        Assert.False(root.TryGetProperty("internalDateSource", out _));
     }
 
     [Fact]

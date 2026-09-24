@@ -69,16 +69,11 @@ public sealed class GmailDestinationService(
             .Replace('/', '_');
         using var request = await AuthorizedRequestAsync(
             HttpMethod.Post,
-            $"{BaseUrl}/messages/import",
+            $"{BaseUrl}/messages/import?internalDateSource=dateHeader",
             cancellationToken
         );
         request.Content = JsonContent.Create(
-            new
-            {
-                raw,
-                labelIds = ImportedLabelIds,
-                internalDateSource = "dateHeader",
-            }
+            new { raw, labelIds = ImportedLabelIds }
         );
         using var response = await httpClient.SendAsync(
             request,
