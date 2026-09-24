@@ -112,7 +112,7 @@ public sealed class GmailDestinationService_Tests : BaseTest
     }
 
     [Fact]
-    public async Task ImportAsync_Should_Send_Raw_Message_With_Labels_And_Date_Source()
+    public async Task ImportAsync_Should_Use_Insert_Endpoint_With_Date_Source()
     {
         string? requestBody = null;
         using var client = new HttpClient(
@@ -126,10 +126,7 @@ public sealed class GmailDestinationService_Tests : BaseTest
                 }
 
                 Assert.Equal(HttpMethod.Post, request.Method);
-                Assert.EndsWith(
-                    "/messages/import",
-                    request.RequestUri.AbsolutePath
-                );
+                Assert.EndsWith("/messages", request.RequestUri.AbsolutePath);
                 Assert.Equal(
                     "?internalDateSource=dateHeader",
                     request.RequestUri.Query
@@ -158,6 +155,39 @@ public sealed class GmailDestinationService_Tests : BaseTest
         Assert.Equal("INBOX", root.GetProperty("labelIds")[0].GetString());
         Assert.Equal("UNREAD", root.GetProperty("labelIds")[1].GetString());
         Assert.False(root.TryGetProperty("internalDateSource", out _));
+    }
+
+    [Fact]
+    public async Task ImportAsync_Should_Include_Gmail_Error_Response()
+    {
+        using var client = new HttpClient(
+            new StubHandler(request =>
+                Task.FromResult(
+                    request.RequestUri!.Host == "oauth2.googleapis.com"
+                        ? JsonResponse(
+                            """{"access_token":"token","expires_in":3600}"""
+                        )
+                        : new HttpResponseMessage(HttpStatusCode.BadRequest)
+                        {
+                            Content = new StringContent(
+                                "invalidArgument",
+                                Encoding.UTF8,
+                                "application/json"
+                            ),
+                        }
+                )
+            )
+        );
+
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            new GmailDestinationService(
+                client,
+                CreateGmailSettings()
+            ).ImportAsync([1, 2, 3], CancellationToken.None)
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);
+        Assert.Contains("invalidArgument", exception.Message);
     }
 
     [Fact]

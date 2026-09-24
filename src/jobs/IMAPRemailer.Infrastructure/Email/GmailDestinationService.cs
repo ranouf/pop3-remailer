@@ -69,7 +69,7 @@ public sealed class GmailDestinationService(
             .Replace('/', '_');
         using var request = await AuthorizedRequestAsync(
             HttpMethod.Post,
-            $"{BaseUrl}/messages/import?internalDateSource=dateHeader",
+            $"{BaseUrl}/messages?internalDateSource=dateHeader",
             cancellationToken
         );
         request.Content = JsonContent.Create(
@@ -79,7 +79,17 @@ public sealed class GmailDestinationService(
             request,
             cancellationToken
         );
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(
+                cancellationToken
+            );
+            throw new HttpRequestException(
+                $"Gmail import failed: {error}",
+                null,
+                response.StatusCode
+            );
+        }
     }
 
     #region Private
