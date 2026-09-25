@@ -118,6 +118,8 @@ public sealed class EmailManager_Tests
         var run = Assert.Single(runs.Completed);
         Assert.Equal(1, run.Imported);
         Assert.Equal(1, run.SourceCount);
+        Assert.Equal((1, 0, 0, 0), runs.Updates[0]);
+        Assert.Equal((1, 1, 0, 0), runs.Updates[^1]);
         Assert.Contains(
             logger.Messages,
             message =>

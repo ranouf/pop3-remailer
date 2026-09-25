@@ -28,6 +28,21 @@ public sealed class SqliteJobRunHistory_Tests : BaseTest
         Assert.Null(running.DurationMs);
         Assert.Null(running.Error);
 
+        await history.UpdateRunAsync(
+            runningId,
+            2,
+            1,
+            0,
+            0,
+            CancellationToken.None
+        );
+        running = Assert.Single(
+            await history.GetRecentRunsAsync(5, CancellationToken.None)
+        );
+        Assert.Equal("Running", running.Status);
+        Assert.Equal(2, running.SourceCount);
+        Assert.Equal(1, running.Imported);
+
         await history.CompleteRunAsync(
             runningId,
             new JobRunResult(

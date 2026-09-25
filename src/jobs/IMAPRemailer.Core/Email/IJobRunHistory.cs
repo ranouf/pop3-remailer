@@ -11,6 +11,16 @@ public interface IJobRunHistory
     /// <returns>The identifier of the created run.</returns>
     Task<long> StartRunAsync(bool dryRun, CancellationToken cancellationToken);
 
+    /// <summary>Updates the counters displayed while a run is in progress.</summary>
+    Task UpdateRunAsync(
+        long runId,
+        int sourceCount,
+        int imported,
+        int alreadyPresent,
+        int pending,
+        CancellationToken cancellationToken
+    );
+
     /// <summary>Completes a running record with its result.</summary>
     /// <param name="runId">The identifier returned by StartRunAsync.</param>
     /// <param name="result">The final outcome and counts.</param>
