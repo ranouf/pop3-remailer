@@ -99,6 +99,35 @@ public sealed class SqliteJobRunHistory : IJobRunHistory
     }
 
     /// <inheritdoc />
+    public async Task UpdateRunAsync(
+        long runId,
+        int sourceCount,
+        int imported,
+        int alreadyPresent,
+        int pending,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE job_runs
+            SET source_count = $sourceCount,
+                imported = $imported,
+                already_present = $alreadyPresent,
+                pending = $pending
+            WHERE id = $id;
+            """;
+        command.Parameters.AddWithValue("$id", runId);
+        command.Parameters.AddWithValue("$sourceCount", sourceCount);
+        command.Parameters.AddWithValue("$imported", imported);
+        command.Parameters.AddWithValue("$alreadyPresent", alreadyPresent);
+        command.Parameters.AddWithValue("$pending", pending);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task CompleteRunAsync(
         long runId,
         JobRunResult result,

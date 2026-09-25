@@ -6,6 +6,12 @@ namespace IMAPRemailer.Jobs.Tests.Fakes;
 public sealed class FakeJobRunHistory : IJobRunHistory
 {
     public List<JobRunResult> Completed { get; } = [];
+    public List<(
+        int SourceCount,
+        int Imported,
+        int AlreadyPresent,
+        int Pending
+    )> Updates { get; } = [];
     public List<(long RunId, string Level, string Message)> Logged { get; } =
     [];
 
@@ -13,6 +19,19 @@ public sealed class FakeJobRunHistory : IJobRunHistory
         bool dryRun,
         CancellationToken cancellationToken
     ) => Task.FromResult(1L);
+
+    public Task UpdateRunAsync(
+        long runId,
+        int sourceCount,
+        int imported,
+        int alreadyPresent,
+        int pending,
+        CancellationToken cancellationToken
+    )
+    {
+        Updates.Add((sourceCount, imported, alreadyPresent, pending));
+        return Task.CompletedTask;
+    }
 
     public Task CompleteRunAsync(
         long runId,

@@ -59,6 +59,14 @@ public sealed class EmailManager(
                 () => source.ReadAsync(cancellationToken)
             );
             sourceCount = messages.Count;
+            await runs.UpdateRunAsync(
+                runId,
+                sourceCount,
+                imported,
+                skipped,
+                pending,
+                cancellationToken
+            );
             logger.LogInformation(
                 "Source returned {MessageCount} emails for this run.",
                 messages.Count
@@ -163,6 +171,14 @@ public sealed class EmailManager(
                 }
                 finally
                 {
+                    await runs.UpdateRunAsync(
+                        runId,
+                        sourceCount,
+                        imported,
+                        skipped,
+                        pending,
+                        cancellationToken
+                    );
                     // Record per-email time even when one of its operations fails.
                     logger.LogInformation(
                         "TIMING EmailId={EmailId} Outcome={Outcome} DurationMs={DurationMs}",
