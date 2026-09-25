@@ -67,27 +67,60 @@ public sealed class GmailDestinationService(
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
-        using var request = await AuthorizedRequestAsync(
-            HttpMethod.Post,
-            $"{BaseUrl}/messages/import",
+        using var response = await SendMessageAsync(
+            "messages/import",
+            raw,
             cancellationToken
         );
-        request.Content = JsonContent.Create(
-            new
-            {
-                raw,
-                labelIds = ImportedLabelIds,
-                internalDateSource = "dateHeader",
-            }
-        );
-        using var response = await httpClient.SendAsync(
-            request,
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var error = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!error.Contains("Invalid attachment.", StringComparison.Ordinal))
+        {
+            throw CreateImportException(response, error);
+        }
+
+        using var fallbackResponse = await SendMessageAsync(
+            "messages",
+            raw,
             cancellationToken
         );
-        response.EnsureSuccessStatusCode();
+        if (!fallbackResponse.IsSuccessStatusCode)
+        {
+            var fallbackError =
+                await fallbackResponse.Content.ReadAsStringAsync(
+                    cancellationToken
+                );
+            throw CreateImportException(fallbackResponse, fallbackError);
+        }
     }
 
     #region Private
+
+    private static HttpRequestException CreateImportException(
+        HttpResponseMessage response,
+        string error
+    ) => new($"Gmail import failed: {error}", null, response.StatusCode);
+
+    private async Task<HttpResponseMessage> SendMessageAsync(
+        string resource,
+        string raw,
+        CancellationToken cancellationToken
+    )
+    {
+        using var request = await AuthorizedRequestAsync(
+            HttpMethod.Post,
+            $"{BaseUrl}/{resource}?internalDateSource=dateHeader",
+            cancellationToken
+        );
+        request.Content = JsonContent.Create(
+            new { raw, labelIds = ImportedLabelIds }
+        );
+        return await httpClient.SendAsync(request, cancellationToken);
+    }
 
     /// <summary>Creates a Gmail request with a cached or refreshed OAuth access token.</summary>
     /// <param name="method">The HTTP method for the Gmail request.</param>

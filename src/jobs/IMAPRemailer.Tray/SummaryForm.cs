@@ -1,9 +1,10 @@
 using IMAPRemailer.Core.Email;
+using IMAPRemailer.Core.Email.Helpers;
 using IMAPRemailer.Core.Email.Models;
 
 namespace IMAPRemailer.Tray;
 
-/// <summary>Displays an anchored flyout with every retained run and its live logs.</summary>
+/// <summary>Displays an anchored flyout with recent runs and their live logs.</summary>
 public sealed class SummaryForm : Form
 {
     private readonly IJobRunHistory history;
@@ -165,9 +166,12 @@ public sealed class SummaryForm : Form
     )
     {
         backgroundRunning = isBackgroundRunning;
-        var latest = runs.Count == 0 ? null : runs[^1];
+        var displayedRuns = fullWindow
+            ? runs
+            : JobRunHistoryDisplay.GetCompactRuns(runs);
+        var latest = displayedRuns.Count == 0 ? null : displayedRuns[^1];
 
-        var retainedIds = runs.Select(run => run.Id).ToHashSet();
+        var retainedIds = displayedRuns.Select(run => run.Id).ToHashSet();
         foreach (
             var id in cards
                 .Keys.Where(id => !retainedIds.Contains(id))
@@ -180,7 +184,7 @@ public sealed class SummaryForm : Form
             cards.Remove(id);
         }
 
-        foreach (var run in runs)
+        foreach (var run in displayedRuns)
         {
             if (!cards.TryGetValue(run.Id, out var card))
             {

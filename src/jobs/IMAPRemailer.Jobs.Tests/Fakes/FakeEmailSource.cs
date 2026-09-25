@@ -9,6 +9,8 @@ public sealed class FakeEmailSource : IEmailSourceService
     public bool FailRead { get; set; }
     public Action? OnRead { get; set; }
     public int ReadCount { get; private set; }
+    public int DisconnectCount { get; private set; }
+    public bool FailDisconnect { get; set; }
     public List<string> MovedMessages { get; } = [];
     public bool FailMove { get; set; }
 
@@ -40,6 +42,17 @@ public sealed class FakeEmailSource : IEmailSourceService
         }
 
         MovedMessages.Add(sourceId);
+        return Task.CompletedTask;
+    }
+
+    public Task DisconnectAsync(CancellationToken cancellationToken)
+    {
+        DisconnectCount++;
+        if (FailDisconnect)
+        {
+            throw new InvalidOperationException("IMAP disconnect failed");
+        }
+
         return Task.CompletedTask;
     }
 }

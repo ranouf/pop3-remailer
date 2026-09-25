@@ -212,29 +212,36 @@ public sealed class EmailManager(
         {
             try
             {
-                // Persist totals for the tray even when the transfer fails.
-                await runs.CompleteRunAsync(
-                    runId,
-                    new JobRunResult(
-                        status == "Completed",
-                        sourceCount,
-                        imported,
-                        skipped,
-                        pending,
-                        runClock.Elapsed,
-                        error
-                    ),
-                    CancellationToken.None
-                );
+                await source.DisconnectAsync(CancellationToken.None);
             }
             finally
             {
-                // Record total run time and failure status even if reading or processing fails.
-                logger.LogInformation(
-                    "TIMING RunStatus={RunStatus} TotalDurationMs={TotalDurationMs}",
-                    status,
-                    runClock.Elapsed.TotalMilliseconds
-                );
+                try
+                {
+                    // Persist totals for the tray even when the transfer fails.
+                    await runs.CompleteRunAsync(
+                        runId,
+                        new JobRunResult(
+                            status == "Completed",
+                            sourceCount,
+                            imported,
+                            skipped,
+                            pending,
+                            runClock.Elapsed,
+                            error
+                        ),
+                        CancellationToken.None
+                    );
+                }
+                finally
+                {
+                    // Record total run time and failure status even if reading or processing fails.
+                    logger.LogInformation(
+                        "TIMING RunStatus={RunStatus} TotalDurationMs={TotalDurationMs}",
+                        status,
+                        runClock.Elapsed.TotalMilliseconds
+                    );
+                }
             }
         }
     }

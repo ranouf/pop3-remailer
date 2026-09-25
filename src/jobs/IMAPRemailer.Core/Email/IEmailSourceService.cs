@@ -24,4 +24,9 @@ public interface IEmailSourceService
         string sourceId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>Closes the source connection at the end of a transfer run.</summary>
+    /// <param name="cancellationToken">Cancels the disconnection.</param>
+    /// <returns>A task that completes when the connection is closed.</returns>
+    Task DisconnectAsync(CancellationToken cancellationToken);
 }
